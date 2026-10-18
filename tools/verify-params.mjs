@@ -415,10 +415,115 @@ for (const item of results) {
     check(backslash.seen.length === 0, 'github_api: a backslash path is refused before the runner is called')
   }
 }
-// Coverage is reported, never hidden. A parameter whose description names no
-// action is not tested against any, and that blind spot must be visible: the
-// first version of this guard silently skipped 210 of 304 parameters, which reads
-// as "everything is checked" when most of it was not.
+
+// ---------------------------------------------------------------------------
+// `github_update` — the second tool whose parameters live on the DOMAIN.
+//
+// Same instrument as the block above: a recording runner, because nothing is
+// executed. What matters is that each declared parameter still changes what the
+// tool ASKS FOR — the endpoint for `channel`, the tag endpoint for `tag`, whether
+// a download happens for `force`, and the timeout option for `timeoutMs`.
+// ---------------------------------------------------------------------------
+{
+  const updateDomain = (await import('../lib/domains/update.js')).default
+  const { createHash } = await import('node:crypto')
+  const { writeFileSync, mkdirSync } = await import('node:fs')
+  const { join: joinPath } = await import('node:path')
+
+  // A real artifact is needed because `stage` VERIFIES what it downloaded: a fake
+  // runner that only returns `ok` leaves no file, the digest check fails honestly,
+  // and the assertion would be testing the refusal instead of the happy path.
+  const ARTIFACT = 'verify-params artifact'
+  const DIGEST = `sha256:${createHash('sha256').update(ARTIFACT).digest('hex')}`
+
+  /** Drive the update domain once with the given arguments. */
+  const driveUpdate = async (actionName, args) => {
+    const seen = []
+    const cacheDir = joinPath(process.env.TEMP ?? '/tmp', `dsh-verify-params-${Math.random().toString(36).slice(2)}`)
+    mkdirSync(cacheDir, { recursive: true })
+    const release = {
+      tag_name: 'v9.9.9',
+      html_url: 'https://github.com/o/r/releases/tag/v9.9.9',
+      published_at: '2026-01-01T00:00:00Z',
+      prerelease: false,
+      assets: [{
+        name: 'dsh-github-toolkit-9.9.9.tgz',
+        size: ARTIFACT.length,
+        digest: DIGEST,
+        browser_download_url: 'https://example.invalid/a.tgz',
+      }],
+    }
+    const deps = {
+      pluginVersion: () => '1.0.0',
+      runner: {
+        run: async (argv, options) => {
+          seen.push({ argv, options })
+          // The release read is the first call; `gh release download` is the second,
+          // and it is the one that must materialise the file for verification.
+          if (argv[0] === 'api') {
+            return { ok: true, stdout: JSON.stringify(release), stderr: '', data: release }
+          }
+          if (argv[0] === 'release') {
+            mkdirSync(cacheDir, { recursive: true })
+            writeFileSync(joinPath(cacheDir, 'dsh-github-toolkit-9.9.9.tgz'), ARTIFACT)
+            return { ok: true, stdout: '', stderr: '' }
+          }
+          return { ok: true, stdout: '', stderr: '' }
+        },
+      },
+    }
+    const outcome = await updateDomain.actions[actionName].custom({
+      args,
+      cfg: { updateRepo: 'o/r', updateChannel: 'stable', updateCacheDir: cacheDir, timeoutMs: 60_000, watchTimeoutMs: 300_000 },
+      deps,
+      exec: undefined,
+    })
+    return { seen, outcome }
+  }
+
+  // 1. `channel` selects the endpoint: stable reads `releases/latest`, latest reads
+  //    the list so prereleases are eligible.
+  {
+    const stable = await driveUpdate('check', {})
+    check(stable.seen[0]?.argv?.includes('repos/o/r/releases/latest') === true,
+      'github_update: channel "stable" reads the latest-release endpoint', JSON.stringify(stable.seen[0]?.argv ?? null))
+    const latest = await driveUpdate('check', { channel: 'latest' })
+    check(latest.seen[0]?.argv?.some((part) => part.includes('releases?per_page=1')) === true,
+      'github_update: channel "latest" reads the release list', JSON.stringify(latest.seen[0]?.argv ?? null))
+  }
+
+  // 2. `tag` switches the release lookup to the tag endpoint, and reaches `gh
+  //    release download` as the positional tag.
+  {
+    const { seen } = await driveUpdate('stage', { tag: 'v9.9.9' })
+    check(seen[0]?.argv?.some((part) => part.includes('releases/tags/v9.9.9')) === true,
+      'github_update: `tag` selects the release by tag', JSON.stringify(seen[0]?.argv ?? null))
+    const download = seen.find((entry) => entry.argv[0] === 'release')
+    check(download?.argv?.includes('v9.9.9') === true,
+      'github_update: `tag` reaches gh release download', JSON.stringify(download?.argv ?? null))
+  }
+
+  // 3. `force` decides whether an intact staged copy is reused. Reaching this means
+  //    a second runner call for the download, which is the observable difference.
+  {
+    const reuse = await driveUpdate('stage', { tag: 'v9.9.9' })
+    check(reuse.seen.some((entry) => entry.argv[0] === 'release') === true,
+      'github_update: stage downloads when nothing is staged')
+    const forced = await driveUpdate('stage', { tag: 'v9.9.9', force: true })
+    check(forced.seen.some((entry) => entry.argv[0] === 'release') === true,
+      'github_update: `force` still downloads when a copy exists')
+  }
+
+  // 4. `timeoutMs` reaches the runner options, and the command carries a verification
+  //    result rather than silently trusting the transfer.
+  {
+    const { outcome } = await driveUpdate('stage', { tag: 'v9.9.9', timeoutMs: 1234 })
+    check(outcome?.data?.verification !== undefined,
+      'github_update: stage reports a digest verification state', String(outcome?.data?.verification))
+    check(outcome?.data?.installed === false,
+      'github_update: stage never claims to have installed')
+  }
+}
 //
 // The SECOND version had the same defect one level up: `domains` above lists seven
 // modules, and `github_api` is not one of them — so "0 NOT covered" was computed over a set
@@ -439,12 +544,12 @@ const controls = skipped.filter((item) => item.includes('control parameter'))
 /**
  * Every domain this guard did NOT assert, with the reason. Read, not remembered.
  *
- * `github_api` IS in the set: the section above asserts it by driving its custom executor
- * with a recording runner, rather than by perturbing per-action `params`. Leaving it out is
- * what made the coverage line print "not asserted at all" immediately after thirteen
- * assertions about it had passed.
+ * `github_api` and `github_update` ARE in the set: the sections above assert them by driving
+ * their custom executors with a recording runner, rather than by perturbing per-action `params`.
+ * Leaving one out is what made the coverage line print "not asserted at all" immediately after
+ * thirteen assertions about it had passed.
  */
-const assertedTools = new Set([...domains.map((domain) => domain.tool), 'github_api'])
+const assertedTools = new Set([...domains.map((domain) => domain.tool), 'github_api', 'github_update'])
 const domainDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'domains')
 const notAsserted = []
 for (const file of readdirSync(domainDir)) {

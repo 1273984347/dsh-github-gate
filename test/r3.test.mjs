@@ -388,6 +388,10 @@ test('R3: every state-changing action is classified destructive', async () => {
     // for GET and writes for POST/PATCH/PUT/DELETE. `isDestructiveCall` carries
     // that judgement, and the two tests below pin both halves of it.
     'github_api:request',
+    // Staging a release artifact writes one file into the update cache. It changes
+    // no GitHub state and executes nothing — the install that would is a separate,
+    // approval-gated step outside this plugin.
+    'github_update:stage',
   ])
   const report = []
   for (const domain of ALL_DOMAINS) {

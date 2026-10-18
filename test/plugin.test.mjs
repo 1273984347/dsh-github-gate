@@ -46,8 +46,8 @@ test('plugin: exports the documented shape and registers every tool', () => {
 
   const { ctx, tools } = makeContext()
   apply(ctx, {})
-  assert.equal(tools.size, 8)
-  for (const toolName of ['github_auth', 'github_repo', 'github_pr', 'github_issue', 'github_release', 'github_actions', 'github_search', 'github_api']) {
+  assert.equal(tools.size, 9)
+  for (const toolName of ['github_auth', 'github_repo', 'github_pr', 'github_issue', 'github_release', 'github_actions', 'github_search', 'github_api', 'github_update']) {
     assert.ok(tools.has(toolName), `${toolName} must be registered`)
   }
 })
@@ -82,7 +82,7 @@ test('plugin: activation survives an empty, absent, and hostile config', () => {
   for (const config of [undefined, null, {}, { timeoutMs: 'nonsense' }, { env: 'not-an-object' }, { maxOutputBytes: -1 }, []]) {
     const { ctx, tools } = makeContext()
     assert.doesNotThrow(() => apply(ctx, config), `config ${JSON.stringify(config)} must not throw`)
-    assert.equal(tools.size, 8)
+    assert.equal(tools.size, 9)
   }
 })
 
@@ -90,7 +90,7 @@ test('plugin: allowRawApi false removes exactly the github_api tool', () => {
   const { ctx, tools } = makeContext()
   apply(ctx, { allowRawApi: false })
   assert.equal(tools.has('github_api'), false)
-  assert.equal(tools.size, 7)
+  assert.equal(tools.size, 8)
 })
 
 test('plugin: blockShellGit installs a guard, and the default does not', () => {
@@ -302,6 +302,6 @@ test('plugin: apply() accepts the shape Cordis produces from the Config schema',
   assert.equal(validated.issues, undefined, JSON.stringify(validated.issues))
   const { ctx, tools } = makeContext()
   assert.doesNotThrow(() => apply(ctx, validated.value))
-  assert.equal(tools.size, 8)
+  assert.equal(tools.size, 9)
   assert.equal(normalizeConfig(validated.value).timeoutMs, 60_000)
 })

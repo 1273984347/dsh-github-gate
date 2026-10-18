@@ -29,4 +29,12 @@
         allowDestructive: true
         allowRawApi: true
         blockShellGit: false
+        # Self-update. `updateCheck: false` keeps activation offline: the
+        # github_update tool still works on demand, but nothing is fetched at
+        # startup. Flip it to true for a one-line notice when a newer release
+        # exists (checked at most once per 24 hours).
+        updateCheck: false
+        updateRepo: ""
+        updateChannel: stable
+        updateCacheDir: ""
         env: {}

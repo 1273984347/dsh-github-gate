@@ -34,6 +34,15 @@ import {
 } from './lib/auth.js'
 import { createRequire } from 'node:module'
 import { isOlderThan, versionToken } from './lib/version.js'
+import {
+  DEFAULT_UPDATE_REPO,
+  isCacheFresh,
+  parseRelease,
+  readCheckCache,
+  releaseRelation,
+  updateCheckCachePath,
+  writeCheckCache,
+} from './lib/update.js'
 import { resolveRepo } from './lib/workspace.js'
 import { registerDomainTools, installDestructiveApproval } from './lib/registry.js'
 import { installClientBridge } from './lib/client-bridge.js'
@@ -78,6 +87,60 @@ export const inject = ['tools']
 export { Config }
 
 /**
+ * Log one line when a newer release exists, at most once per cache window.
+ *
+ * Advisory by construction: every failure path — no credential, no network, an
+ * unreadable cache, an unparseable tag — ends in silence rather than in a warning
+ * the user cannot act on. The alternative, a red log line on an offline machine,
+ * teaches people to ignore the log.
+ *
+ * A cached result younger than the TTL is reused so a restart loop does not turn
+ * into an API loop.
+ *
+ * @param {any} ctx the plugin context
+ * @param {import('./lib/types.js').PluginConfig} cfg the resolved config
+ * @param {import('./lib/types.js').Runner} runner the process runner
+ * @returns {Promise<void>}
+ */
+async function notifyWhenUpdateAvailable(ctx, cfg, runner) {
+  if (cfg.updateCheck !== true) return
+
+  const cachePath = updateCheckCachePath()
+  const cached = readCheckCache(cachePath)
+  const installed = pluginVersion()
+  if (isCacheFresh(cached)) {
+    // The cached tag is re-compared against the CURRENT installed version, because
+    // the cached answer is "what is the newest release", not "am I behind" — the
+    // latter changes after an upgrade that did not clear the cache.
+    if (cached !== undefined && releaseRelation(installed, cached.latest) === 'newer') {
+      ctx.logger?.info?.('update available: %s is installed, %s is published — run github_update check', installed, cached.latest)
+    }
+    return
+  }
+
+  const repo = typeof cfg.updateRepo === 'string' && cfg.updateRepo.trim() !== '' ? cfg.updateRepo.trim() : DEFAULT_UPDATE_REPO
+  const endpoint = cfg.updateChannel === 'latest'
+    ? `repos/${repo}/releases?per_page=1`
+    : `repos/${repo}/releases/latest`
+  const result = await runner.run(['api', endpoint], { timeoutMs: cfg.timeoutMs })
+  if (result.ok !== true) return
+  const payload = cfg.updateChannel === 'latest'
+    ? (Array.isArray(result.data) ? result.data[0] : undefined)
+    : result.data
+  if (payload === undefined) return
+  const release = parseRelease(payload)
+  if (release.version === '') return
+  writeCheckCache(cachePath, { checkedAt: Date.now(), latest: release.version })
+  if (releaseRelation(installed, release.version) === 'newer') {
+    ctx.logger?.info?.(
+      'update available: %s is installed, %s is published — run github_update check for the release notes and staging path',
+      installed === '' ? '(unknown)' : installed,
+      release.version,
+    )
+  }
+}
+
+/**
  * Build the dependency bag the domain layer receives.
  *
  * Separated from `apply` because it is a self-contained description of what
@@ -100,6 +163,9 @@ function buildDeps({ credentials, runner, cfg, tokenLookup, ctx, credentialEnv }
     runner,
     resolveToken: tokenLookup,
     fetch: globalThis.fetch,
+    // The running package version, for `github_update check`. Passed as a function
+    // rather than a string so a diagnostic never reads the manifest at import time.
+    pluginVersion,
     // Optional: present only when a job registry is composed. `run_in_background`
     // reports availability from this, so an absent registry is a clear message
     // rather than a silent foreground run.
@@ -267,6 +333,15 @@ export function apply(ctx, rawConfig) {
   }).catch(() => { /* advisory only */ })
 
   const deps = buildDeps({ credentials, runner, cfg, tokenLookup, ctx, credentialEnv })
+
+  // Advisory update notice, opt-in and cached.
+  //
+  // Off by default (`updateCheck: false`): a plugin that reaches the network during
+  // activation surprises someone who did not ask for it, and this one already makes
+  // two advisory calls above. When enabled it runs at most once per 24 hours, reads
+  // the cached result otherwise, and logs one line — never a state change, because a
+  // replaced bundle needs a restart this process cannot perform.
+  notifyWhenUpdateAvailable(ctx, cfg, runner).catch(() => { /* advisory only */ })
 
   registerDomainTools(ctx, cfg, runner, {
     cwd: globalThis.process?.cwd?.() ?? '.',

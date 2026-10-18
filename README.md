@@ -18,6 +18,7 @@ Host-side tools plus one small browser half. Zero runtime dependencies. No build
 - [Guidance](#guidance)
 - [The branch pill](#the-branch-pill)
 - [What it provides](#what-it-provides)
+- [Updating this plugin](#updating-this-plugin)
 - [Configuration](#configuration)
 - [Credential chain](#credential-chain)
 - [Device Flow needs your own OAuth App](#device-flow-needs-your-own-oauth-app)
@@ -105,11 +106,52 @@ admit the running dsh version, which is what keeps
 |---|---|
 | `github_auth` | Credential chain status, **end-to-end connectivity probe**, Device Flow login, PAT login, logout |
 | `github_repo` | View, list, branches, clone, create, edit, rename, archive, delete |
-| `github_pr` | List, view, diff, checks, status, create, comment, review, ready, checkout, merge, close, reopen, edit || `github_issue` | List, view, create, comment, close, reopen, edit, develop |
+| `github_pr` | List, view, diff, checks, status, create, comment, review, ready, checkout, merge, close, reopen, edit |
+| `github_issue` | List, view, create, comment, close, reopen, edit, develop |
 | `github_release` | List, view, create, edit, upload, download, delete |
 | `github_actions` | Run list/view/log/watch/rerun/cancel/delete, workflow list/view/dispatch |
 | `github_search` | Repositories, issues, pull requests, code, commits |
 | `github_api` | Guarded raw REST for everything else (registered when `allowRawApi: true`) |
+| `github_update` | Check for a newer release of this plugin, and stage its verified tarball |
+
+## Updating this plugin
+
+`github_update` does the two things a plugin can do safely; the two it must not do
+belong to the platform.
+
+```
+check   → is there a newer release?              read-only
+stage   → download it and verify its digest      writes one file
+install → plugin_manager install_bundle          platform, approval-gated
+restart → you                                    platform
+```
+
+```text
+github_update { "action": "check" }
+  installed: 1.7.0   latest: 1.8.0   status: an upgrade is available
+
+github_update { "action": "stage" }
+  staged: <tmp>/dsh-github-toolkit-updates/dsh-github-toolkit-1.8.0.tgz
+  digest: sha256 verified against the digest GitHub publishes
+```
+
+Then install the returned path with `plugin_manager` action `install_bundle`, and
+**restart the Harness** — the running process has already imported the old module
+generation, and replacing files does not reload it. That is why `stage` reports
+`installed: false` and `next.restartRequired: true` rather than claiming success.
+
+Three details worth knowing:
+
+- **Every network call goes through `gh`, not `fetch`.** On a machine whose TLS is
+  intercepted by a proxy the OS trusts but Node's CA store does not, `fetch` to
+  `api.github.com` fails with `UNABLE_TO_VERIFY_LEAF_SIGNATURE` while `gh`
+  succeeds. This is the same reason `github_api` routes through `gh api`.
+- **The digest is checked, and "no digest" is not "verified".** GitHub publishes a
+  `sha256:` digest per asset; the downloaded bytes are compared against it. A
+  release that publishes no digest is reported as `unverified`, not as a pass.
+- **`updateCheck: true` adds a startup notice.** Off by default: an activation-time
+  network call is a surprise. When on, it runs at most once per 24 hours and logs a
+  single line.
 
 ## Credential chain
 
@@ -185,6 +227,10 @@ there instead of degrading silently on first use. The full catalog:
 | `approvalForDestructive` | `true` | Ask the user through the approval seam before a destructive action runs |
 | `allowRawApi` | `true` | Register the `github_api` tool |
 | `blockShellGit` | `false` | Deny shell-level git mutations through a guard |
+| `updateCheck` | `false` | Log a one-line notice at startup when a newer release exists (cached 24h) |
+| `updateRepo` | `""` | Repository releases are read from; empty means this project |
+| `updateChannel` | `stable` | `stable` ignores prereleases; `latest` takes the newest, prerelease included |
+| `updateCacheDir` | `""` | Where staged artifacts land; empty uses the system temp directory |
 | `env` | `{}` | Extra environment for child processes |
 
 ## Safety model

@@ -1,5 +1,88 @@
 # Changelog
 
+## 1.7.0 — 自动更新：检查与暂存，安装和重启留给平台
+
+**新增 `github_update` 工具，两个动作：`check` 报告是否有新版本，`stage` 下载并校验其
+sha256，返回可安装的路径。**
+
+### 为什么不做「全自动安装 + 自动重启」
+
+三条实测约束决定了边界，都不是猜的：
+
+1. **这个环境里 Node 的 `fetch` 到不了 github.com。** TLS 被代理拦截、OS 信任但 Node 的
+   内置 CA 不信任，`fetch` 报 `UNABLE_TO_VERIFY_LEAF_SIGNATURE`，而 `gh` 因为用平台信任库
+   正常。所以本功能的每一次网络调用都走 `gh` —— 和 `github_api` 早就记录过的同一个理由。
+   设计前先跑了一遍：匿名 `fetch` 失败、`gh api` 成功（5000/小时）。
+2. **替换已安装的包必须重启才生效。** Node 早已 import 了旧模块，写新文件不改变运行中的
+   世代。本会话直接观测到：装完新版后投影出的 `Config` schema 仍是旧的，直到 Host 重启。
+3. **安装由 Harness 插件管理器拥有。** `install_bundle` 会重写 profile 的 `package.json`、
+   跑 pnpm、应用 patch 行。插件自己去改 profile 会让依赖 spec、lockfile、patch 行三者不一致
+   —— 而且会绕过平台已经设好的审批点，那正是「允许下载的代码运行」的那道门。
+
+所以能做且该做的两件事在这里，不能做的两件事留给平台：
+
+```
+check   → 有没有新版本？                      （只读）
+stage   → 下载并校验摘要                       （只写一个本地文件）
+install → plugin_manager install_bundle        （平台，需审批）
+restart → 用户                                 （平台）
+```
+
+### `check`
+
+- 读 `releases/latest`（`channel: stable`）或 releases 列表（`channel: latest`，含预发布）。
+- 报告 installed / latest / 关系（`newer` / `same` / `older` / `unknown`）、release URL、
+  资产名与大小、GitHub 公布的摘要、以及已暂存的文件。
+- **`unknown` 是独立答案**：版本无法解析时不假装「已是最新」。源码 checkout 会比发布版新，
+  这种情况明确说「installed is AHEAD」，不提示降级。
+
+### `stage`
+
+- `gh release download` 下载，然后**用 GitHub 在 release payload 里公布的 `sha256:` 摘要
+  校验**。传输成功不等于文件正确，所以校验不是装饰。
+- 三态而非两态：`match` / `mismatch` / **`unverified`**（该 release 没公布摘要）。
+  把「没有摘要可对」当成通过，会让这项检查沦为摆设。
+- 摘要不匹配时**拒绝暂存**并给出两个哈希值。
+- 已暂存且校验通过的文件直接复用（`reused: true`），避免重复下载；`force: true` 强制重下。
+- 结果里明确写 `installed: false` 和 `next.restartRequired: true`，并输出剩余两步。
+
+### 激活时的提示（可选）
+
+`updateCheck: true` 时，激活阶段做一次检查，**24 小时缓存**，有新版只打印一行。
+**默认关闭** —— 与 `blockShellGit` 同一条理由：不在用户没要求时联网。工具本身随时可用。
+
+### 新增配置
+
+| 键 | 默认 | 含义 |
+|---|---|---|
+| `updateCheck` | `false` | 激活时检查一次（24h 缓存）并打印一行提示 |
+| `updateRepo` | `""` | 读取 release 的仓库，空则本项目 |
+| `updateChannel` | `stable` | `stable` 忽略预发布；`latest` 取其最新 |
+| `updateCacheDir` | `""` | 暂存目录，空则系统 temp |
+
+### 验证
+
+| 套件 | 结果 |
+|---|---|
+| 离线测试 | **157/157**（新增 17 条更新测试） |
+| 参数覆盖 | **211/211**，9 个工具，0 NOT covered |
+| 行为快照 | **180/180** 确定性一致（新增 4 条，均不触网） |
+| bundle / 引导 / 编码 | 全通过 |
+| **实机端到端**（真实 GitHub release） | **11/11**：真实读取、下载、摘要 `match`、复用、篡改检出 |
+
+实机探针 `tools/probe-update-live.mjs` 拿真实的 `1273984347/dsh-github-toolkit` 跑：
+下载 203 KB 资产、校验出的摘要与 GitHub 公布的 `sha256:1b2c234e…` 一致、篡改一个字节后
+校验立刻变 `mismatch`。这是「暂存值得做」的证据。
+
+### 未做，以及为什么
+
+- **自动安装**：需要写 profile（沙箱之外）且绕过审批，见约束 3。
+- **自动重启**：插件无法重启承载它的进程；能做到的只有「提示用户重启」。
+- **签名校验**：Release 资产由 GitHub 提供摘要，已足够防传输损坏/替换。真正的供应链签名
+  需要维护者密钥，超出本插件范围。
+
+---
+
 ## 1.6.3 — R4：结构化重构（行为零变化）
 
 **这一轮不改任何行为。唯一的目标是让代码可读、可维护、可扩展，并用可执行的证据证明

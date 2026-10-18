@@ -131,6 +131,14 @@ function sampleArgv() {
     ['github_search:code', [['search', 'code', 'q', '--limit', '20', '--repo', 'o/n', '--language', 'ts']]],
     ['github_search:commits', [['search', 'commits', 'q', '--limit', '20', '--repo', 'o/n']]],
     ['github_api:request', [['api', '/rate_limit', '--method', 'GET'], ['api', '/repos/o/n/labels', '--method', 'POST', '--paginate']]],
+    // The self-update tool builds its argv inside custom executors, so `verify-params`
+    // covers the parameters by driving them. These samples cover the other half: that
+    // the shapes it builds are ones `gh` parses.
+    ['github_update:check', [['api', 'repos/o/r/releases/latest'], ['api', 'repos/o/r/releases?per_page=1']]],
+    ['github_update:stage', [
+      ['api', 'repos/o/r/releases/tags/v1.0.0'],
+      ['release', 'download', 'v1.0.0', '--repo', 'o/r', '--pattern', 'dsh-github-toolkit-1.0.0.tgz', '--dir', '.', '--clobber'],
+    ]],
   ])
 }
 

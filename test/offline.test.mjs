@@ -1528,7 +1528,7 @@ test('client bridge: the TOOLS row never depends on the browser carrier', async 
   // And in a composition with no browser carrier, the tools still register.
   const { ctx, tools } = makeContext({ services: {} })
   entry.apply(ctx, {})
-  assert.equal(tools.size, 8, 'every tool registers without a webServer')
+  assert.equal(tools.size, 9, 'every tool registers without a webServer')
 })
 
 test('client bridge: the route is owned by an EFFECT, so disposal releases it', async () => {

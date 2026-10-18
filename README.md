@@ -116,14 +116,14 @@ admit the running dsh version, which is what keeps
 
 ## Updating this plugin
 
-`github_update` does the two things a plugin can do safely; the two it must not do
-belong to the platform.
+`github_update` does the two things a plugin can do safely; the other two belong
+outside it.
 
 ```
 check   → is there a newer release?              read-only
 stage   → download it and verify its digest      writes one file
 install → plugin_manager install_bundle          platform, approval-gated
-restart → you                                    platform
+verify  → confirm the new generation is live     you
 ```
 
 ```text
@@ -135,10 +135,19 @@ github_update { "action": "stage" }
   digest: sha256 verified against the digest GitHub publishes
 ```
 
-Then install the returned path with `plugin_manager` action `install_bundle`, and
-**restart the Harness** — the running process has already imported the old module
-generation, and replacing files does not reload it. That is why `stage` reports
-`installed: false` and `next.restartRequired: true` rather than claiming success.
+Then install the returned path with `plugin_manager` action `install_bundle` — it
+needs approval, because that is the point at which downloaded code is allowed to
+run. That is why `stage` reports `installed: false`: installing is not its job.
+
+**Whether a restart is needed depends on the install, so verify instead of
+assuming.** The plugin manager re-activates the entry, and a measured install
+(1.7.0 over 1.6.1, 2026-10-19) served the new tool set and the new Config keys
+immediately, with no process restart; an earlier install in the same environment
+did not update the projected Config schema until a restart. The check that means
+something is a tool or Config key that only exists in the new version — *not* the
+installed `package.json`, because pnpm replaces it before the module is
+necessarily reloaded. `stage` therefore reports `next.restartRequired: "unverified"`
+rather than `true`.
 
 Three details worth knowing:
 

@@ -1,6 +1,6 @@
 {
   "name": "dsh-github-toolkit",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
   "description": "Distilled GitHub toolkit for DeepSeek Harness: typed gh CLI tools, layered credentials, Device Flow authorization, workspace-bound repository detection, and a guarded REST escape hatch.",
   "type": "module",

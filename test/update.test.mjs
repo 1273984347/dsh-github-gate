@@ -266,7 +266,11 @@ test('update stage: downloads, verifies the digest, and never claims to install'
   assert.equal(result.data.verification, 'match')
   assert.equal(result.data.installed, false, 'staging is not installing')
   assert.equal(result.data.next.action, 'install_bundle')
-  assert.equal(result.data.next.restartRequired, true)
+  // The restart question is deliberately not answered with a boolean: a measured
+  // install loaded the new generation immediately, while an earlier one did not. The
+  // honest field is "unverified", which tells the caller to check instead of guess.
+  assert.equal(result.data.next.restartRequired, 'unverified')
+  assert.match(result.stdout, /VERIFY the running generation/)
   assert.ok(result.data.path.endsWith('dsh-github-toolkit-2.0.0.tgz'))
   assert.match(result.stdout, /Not installed/)
   // The download used the release tag, not "latest".
@@ -305,6 +309,21 @@ test('update stage: refuses a release that carries no tarball', async () => {
   const result = await runUpdate('stage', {}, { runner: updateRunner({ release }).runner })
   assert.equal(result.ok, false)
   assert.match(result.stderr, /no installable \.tgz asset/)
+})
+
+test('update: the feature never claims to know whether a restart is required', async () => {
+  // 1.7.0 said "restart required". Measurement said otherwise: installing 1.7.0 over
+  // 1.6.1 served the new tool set and the new Config keys with no restart, while an
+  // earlier install in the same environment did need one. Two opposite observations
+  // mean the boolean was always a guess. The field is 'unverified' so a caller is told
+  // to CHECK rather than handed a confident wrong answer — and the checks that mean
+  // something are a tool or Config key unique to the new version, not package.json,
+  // which pnpm replaces before the module is necessarily reloaded.
+  const staged = await runUpdate('stage', {})
+  assert.equal(staged.data.next.restartRequired, 'unverified')
+  assert.equal(typeof staged.data.next.restartRequired, 'string', 'not a boolean: the honest answer is a state, not a verdict')
+  assert.match(staged.stdout, /VERIFY the running generation/)
+  assert.doesNotMatch(staged.stdout, /restart the Harness, because/, 'the old unconditional advice must be gone')
 })
 
 test('update: every action is classified, and staging is not read-only', () => {

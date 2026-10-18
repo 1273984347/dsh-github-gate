@@ -52,7 +52,9 @@ try {
     'live: the downloaded bytes match the digest GitHub publishes',
     `state=${staged.data?.verification} expected=${staged.data?.expectedDigest?.slice(0, 16)}… actual=${staged.data?.actualDigest?.slice(0, 16)}…`)
   check(staged.data?.installed === false, 'live: stage does not install')
-  check(staged.data?.next?.restartRequired === true, 'live: the result states that a restart is required')
+  check(staged.data?.next?.restartRequired === 'unverified',
+    'live: the result does not claim to know whether a restart is needed',
+    String(staged.data?.next?.restartRequired))
 
   // 3. The staged file really is the published tarball.
   //

@@ -36,7 +36,7 @@ const CANDIDATES = [
   repoArg !== -1 ? args[repoArg + 1] : undefined,
   process.env.DSH_PROBE_REPO,
   'D:/xiyouji',
-  'D:/dsh/github-toolkit',
+  'D:/dsh/github-gate',
 ].filter((value) => typeof value === 'string' && value !== '')
 
 const results = []

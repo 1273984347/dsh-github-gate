@@ -1,5 +1,5 @@
 /**
- * Browser half of dsh-github-toolkit — the session-header branch pill.
+ * Browser half of dsh-github-gate — the session-header branch pill.
  *
  * ## Why this file looks the way it does
  *
@@ -40,16 +40,20 @@
  */
 
 window.__ModuleLoader__.load({
-  id: 'dsh-github-toolkit',
+  id: 'dsh-github-gate',
   factory(require) {
     const React = require('react')
     const h = React.createElement
 
     const SLOT = 'conversation.session.header.utilities'
-    const CELL_ID = 'dsh-github-toolkit-branch'
-    const ROUTE = '/dsh-github-toolkit/branch'
-    const BRANCHES_ROUTE = '/dsh-github-toolkit/branches'
-    const SWITCH_ROUTE = '/dsh-github-toolkit/switch'
+    // A `list` slot inside the Plugins section: the owner renders one tab per
+    // contribution, so the settings page needs no route or nav entry of its own.
+    const SETTINGS_SLOT = 'settings.plugins.tab'
+    const SETTINGS_CELL_ID = 'dsh-github-gate-settings'
+    const CELL_ID = 'dsh-github-gate-branch'
+    const ROUTE = '/dsh-github-gate/branch'
+    const BRANCHES_ROUTE = '/dsh-github-gate/branches'
+    const SWITCH_ROUTE = '/dsh-github-gate/switch'
 
     /**
      * Component-local stylesheet.
@@ -508,16 +512,248 @@ window.__ModuleLoader__.load({
         ),
       )
     }
+
+    // ---------------------------------------------------------------------
+    // Settings -> Plugins -> GitHub
+    //
+    // A second contribution from the same module: `dsh.client` has one entry, so
+    // splitting this into its own script would need a second manifest entry the
+    // format does not have. The two components share nothing but the loader.
+    // ---------------------------------------------------------------------
+
+    const SETTINGS_STATUS_ROUTE = '/dsh-github-gate/settings/status'
+    const SETTINGS_TOKEN_ROUTE = '/dsh-github-gate/settings/token'
+    const SETTINGS_TEST_ROUTE = '/dsh-github-gate/settings/test'
+
+    /**
+     * Component-local stylesheet, rendered as an element so unmounting removes it.
+     * Only `--dsw-alias-*` theme tokens are used, which the Theme provider requires
+     * in both light and dark; literal colours would break one of them.
+     */
+    const SETTINGS_CSS = `
+.ghg-page{padding:4px 2px;font-size:13px;line-height:1.55;max-width:640px}
+.ghg-title{margin:0 0 4px;font-size:15px;font-weight:600}
+.ghg-sub{margin:0 0 16px;color:var(--dsw-alias-label-secondary)}
+.ghg-row{display:flex;gap:8px;align-items:baseline;padding:3px 0}
+.ghg-key{flex:none;width:132px;color:var(--dsw-alias-label-secondary)}
+.ghg-val{min-width:0;overflow-wrap:anywhere}
+.ghg-ok{color:var(--dsw-alias-state-success-primary)}
+.ghg-warn{color:var(--dsw-alias-state-warn-primary)}
+.ghg-bad{color:var(--dsw-alias-state-error-primary)}
+.ghg-field{display:flex;gap:8px;margin:14px 0 6px}
+.ghg-input{flex:1;min-width:0;height:30px;padding:0 8px;border-radius:6px;
+  border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);
+  color:var(--dsw-alias-label-primary);font:inherit}
+.ghg-btn{height:30px;padding:0 12px;border-radius:6px;cursor:pointer;font:inherit;
+  border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);
+  color:var(--dsw-alias-label-primary)}
+.ghg-btn:disabled{opacity:.55;cursor:default}
+.ghg-btn-primary{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
+.ghg-note{margin:10px 0 0;color:var(--dsw-alias-label-secondary)}
+.ghg-msg{margin:8px 0 0}
+.ghg-hr{height:1px;margin:16px 0;background:var(--dsw-alias-border-l1);border:0}
+`
+
+    /**
+     * Fetch JSON from one of this plugin's routes.
+     * @param {string} route the route path
+     * @param {object} [init] fetch init
+     * @returns {Promise<any>} the parsed body, or a synthetic error
+     */
+    async function callRoute(route, init) {
+      try {
+        const response = await fetch(route, {
+          credentials: 'same-origin',
+          ...init,
+          headers: {
+            'content-type': 'application/json',
+            ...(init?.headers ?? {}),
+          },
+        })
+        if (response.status === 401 || response.status === 403) {
+          return {
+            ok: false,
+            error: 'not-authenticated',
+            detail: 'The Host refused this request. Open the page from the running app rather than a copied URL.',
+          }
+        }
+        const text = await response.text()
+        try {
+          return JSON.parse(text)
+        } catch {
+          return { ok: false, error: 'bad-response', detail: text.slice(0, 200) }
+        }
+      } catch (error) {
+        // A failed fetch here usually means the Host half is not installed in this
+        // profile, which is a different problem from a rejected credential.
+        return {
+          ok: false,
+          error: 'unreachable',
+          detail: `The Host route did not answer (${String(error?.message ?? error)}). Is the plugin's Host half active?`,
+        }
+      }
+    }
+
+    /** A labelled row. */
+    function Row({ label, children }) {
+      return h('div', { className: 'ghg-row' },
+        h('span', { className: 'ghg-key' }, label),
+        h('span', { className: 'ghg-val' }, children),
+      )
+    }
+
+    /**
+     * The settings page.
+     *
+     * Slot props are read defensively: an unrecognised shell version must render a
+     * degraded page, not throw, because a throwing component blanks the whole tab.
+     * @returns {any} the React element
+     */
+    function GitHubSettings() {
+      const React2 = React
+      const [status, setStatus] = React2.useState(null)
+      const [draft, setDraft] = React2.useState('')
+      const [busy, setBusy] = React2.useState('')
+      const [message, setMessage] = React2.useState(null)
+
+      const refresh = React2.useCallback(async () => {
+        setStatus(await callRoute(SETTINGS_STATUS_ROUTE))
+      }, [])
+
+      React2.useEffect(() => {
+        let alive = true
+        ;(async () => {
+          const next = await callRoute(SETTINGS_STATUS_ROUTE)
+          if (alive) setStatus(next)
+        })()
+        return () => { alive = false }
+      }, [])
+
+      const save = async () => {
+        const token = draft.trim()
+        if (token === '') return
+        setBusy('save')
+        setMessage(null)
+        const result = await callRoute(SETTINGS_TOKEN_ROUTE, { method: 'POST', body: JSON.stringify({ token }) })
+        // Clear the field either way: keeping a token in component state after the
+        // attempt serves no purpose and keeps a secret in memory longer than needed.
+        setDraft('')
+        setBusy('')
+        setMessage(result?.ok === true
+          ? { ok: true, text: 'Token stored. It applies to the next call; no restart is involved.' }
+          : { ok: false, text: result?.detail ?? 'The Host could not store the token.' })
+        await refresh()
+      }
+
+      const test = async () => {
+        setBusy('test')
+        setMessage(null)
+        const result = await callRoute(SETTINGS_TEST_ROUTE, { method: 'POST', body: '{}' })
+        setBusy('')
+        setMessage(result?.ok === true
+          ? { ok: true, text: `Authenticated as ${result.login || 'the configured account'}.` }
+          : { ok: false, text: result?.detail ?? 'The API rejected the request.' })
+      }
+
+      if (status === null) {
+        return h('div', { className: 'ghg-page' }, h('p', { className: 'ghg-sub' }, 'Loading…'))
+      }
+
+      const configured = status.configured === true
+      const canStore = status.canStore === true
+      const sourceText = typeof status.source === 'string' && status.source !== '' ? status.source : 'unknown'
+
+      return h('div', { className: 'ghg-page' },
+        h('style', null, SETTINGS_CSS),
+        h('h3', { className: 'ghg-title' }, 'GitHub'),
+        h('p', { className: 'ghg-sub' },
+          'Credentials for the github_* tools. The token is stored in the Harness credential store '
+          + 'and resolved on every call, so rotating it takes effect immediately.'),
+
+        h(Row, { label: 'Status' },
+          configured
+            ? h('span', { className: 'ghg-ok' }, 'a credential is configured')
+            : h('span', { className: 'ghg-warn' }, 'no credential configured')),
+        h(Row, { label: 'Source' }, sourceText),
+        h(Row, { label: 'Account' }, status.login ? status.login : h('span', { className: 'ghg-sub' }, 'not verified')),
+        h(Row, { label: 'Reference' }, status.credentialRef || '(unknown)'),
+        h(Row, { label: 'Plugin version' }, status.version || '(unknown)'),
+
+        h('hr', { className: 'ghg-hr' }),
+
+        canStore
+          ? h('div', null,
+            h('div', { className: 'ghg-field' },
+              h('input', {
+                className: 'ghg-input',
+                type: 'password',
+                autoComplete: 'off',
+                spellCheck: false,
+                placeholder: 'Paste a personal access token',
+                value: draft,
+                onChange: (event) => setDraft(event.target.value),
+                onKeyDown: (event) => { if (event.key === 'Enter') save() },
+                'aria-label': 'Personal access token',
+              }),
+              h('button', {
+                className: 'ghg-btn ghg-btn-primary',
+                type: 'button',
+                disabled: busy !== '' || draft.trim() === '',
+                onClick: save,
+              }, busy === 'save' ? 'Saving…' : 'Save token'),
+            ),
+            h('p', { className: 'ghg-note' },
+              'The token is written to the credential store and never displayed again. '
+              + 'This page cannot read it back.'),
+          )
+          : h('p', { className: 'ghg-note' },
+            'This composition has no credentials service, so a token cannot be stored here. '
+            + 'Set ', h('code', null, status.credentialRef || 'GITHUB_TOKEN'), ' in the host environment instead.'),
+
+        h('div', { className: 'ghg-field' },
+          h('button', {
+            className: 'ghg-btn',
+            type: 'button',
+            disabled: busy !== '',
+            onClick: test,
+          }, busy === 'test' ? 'Testing…' : 'Test connection'),
+          h('button', {
+            className: 'ghg-btn',
+            type: 'button',
+            disabled: busy !== '',
+            onClick: refresh,
+          }, 'Refresh'),
+        ),
+
+        message === null ? null : h('p', {
+          className: `ghg-msg ${message.ok ? 'ghg-ok' : 'ghg-bad'}`,
+        }, message.text),
+
+        h('hr', { className: 'ghg-hr' }),
+        h('p', { className: 'ghg-note' },
+          'Write actions additionally need ', h('code', null, 'confirm: true'),
+          ' and pass through an approval prompt. That prompt is not optional and this page cannot disable it.'),
+      )
+    }
+
     return {
       inject: ['slots'],
       apply(ctx) {
-        // Contribute through the slot, with the registration owned by this
-        // effect so unloading the plugin removes the cell again.
+        // Contribute through each slot, with every registration owned by an effect
+        // so unloading the plugin removes the cell again. Two independent effects:
+        // one slot failing to register must not take the other with it.
         ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register({
           name: SLOT,
           id: CELL_ID,
           order: 10,
         }, BranchPill)))
+
+        ctx.effect(() => ctx.slots.inject(SETTINGS_SLOT, () => ctx.slots.register({
+          name: SETTINGS_SLOT,
+          id: SETTINGS_CELL_ID,
+          order: 40,
+          label: 'GitHub',
+        }, GitHubSettings)))
       },
     }
   },

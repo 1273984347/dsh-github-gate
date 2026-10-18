@@ -1,10 +1,21 @@
 {
-  "name": "dsh-github-toolkit",
-  "version": "1.7.1",
-  "private": true,
-  "description": "Distilled GitHub toolkit for DeepSeek Harness: typed gh CLI tools, layered credentials, Device Flow authorization, workspace-bound repository detection, and a guarded REST escape hatch.",
+  "name": "dsh-github-gate",
+  "version": "2.0.0",
+  "description": "Guarded GitHub tools for DeepSeek Harness: 9 typed github_* tools (58 actions) over the GitHub CLI, where every state-changing action goes through a confirm gate plus a human approval seam, with a digest-verified self-update. | 面向 DeepSeek Harness 的 GitHub 工具：9 个 github_* 工具，所有改状态动作都必须经过 confirm 与人工审批门，并支持摘要校验的自更新。",
   "type": "module",
   "main": "./index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1273984347/dsh-github-gate.git"
+  },
+  "homepage": "https://github.com/1273984347/dsh-github-gate#readme",
+  "bugs": {
+    "url": "https://github.com/1273984347/dsh-github-gate/issues"
+  },
+  "engines": {
+    "node": ">=18",
+    "dsh": ">=0.2.0-0 <0.3.0"
+  },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -26,9 +37,13 @@
     "README.zh.md",
     "CHANGELOG.md",
     "LICENSE",
+    "PRIVACY.md",
+    "install.ps1",
+    "install.sh",
     "docs/DESIGN.md",
     "docs/KNOWLEDGE.md",
     "docs/WORKFLOW.md",
+    "docs/roadmap.md",
     "docs/recurrence.json",
     "docs/recurrence-baseline.json"
   ],
@@ -59,10 +74,10 @@
   },
   "scripts": {
     "vendor": "node tools/ensure-vendor.mjs",
-    "test": "node tools/ensure-vendor.mjs && node --import ./test/register-hook.mjs --test test/offline.test.mjs test/r3.test.mjs test/update.test.mjs test/plugin.test.mjs",
+    "test": "node tools/ensure-vendor.mjs && node --import ./test/register-hook.mjs --test test/offline.test.mjs test/r3.test.mjs test/update.test.mjs test/settings.test.mjs test/client.test.mjs test/plugin.test.mjs",
     "test:live": "node tools/ensure-vendor.mjs && node --import ./test/register-hook.mjs test/live-readonly.mjs",
     "probe": "node tools/ensure-vendor.mjs && node tools/probe-schemastery.mjs && node --import ./test/register-hook.mjs tools/probe-define-tool.mjs",
-    "verify:offline": "node tools/ensure-vendor.mjs && node tools/probe-schemastery.mjs && node --import ./test/register-hook.mjs tools/probe-define-tool.mjs && node --import ./test/register-hook.mjs tools/verify-bundle.mjs && node --import ./test/register-hook.mjs tools/verify-params.mjs && node --import ./test/register-hook.mjs tools/probe-guidance.mjs && node tools/knowledge-index.mjs && node tools/recurrence-report.mjs && node --import ./test/register-hook.mjs --test test/offline.test.mjs test/r3.test.mjs test/update.test.mjs test/plugin.test.mjs",
+    "verify:offline": "node tools/ensure-vendor.mjs && node tools/probe-schemastery.mjs && node --import ./test/register-hook.mjs tools/probe-define-tool.mjs && node --import ./test/register-hook.mjs tools/verify-bundle.mjs && node --import ./test/register-hook.mjs tools/verify-params.mjs && node --import ./test/register-hook.mjs tools/probe-guidance.mjs && node tools/knowledge-index.mjs && node tools/recurrence-report.mjs && node --import ./test/register-hook.mjs --test test/offline.test.mjs test/r3.test.mjs test/update.test.mjs test/settings.test.mjs test/client.test.mjs test/plugin.test.mjs",
     "verify": "npm run verify:offline && node --import ./test/register-hook.mjs test/live-readonly.mjs && node --import ./test/register-hook.mjs tools/probe-connectivity.mjs",
     "probe:connectivity": "node --import ./test/register-hook.mjs tools/probe-connectivity.mjs",
     "probe:guidance": "node --import ./test/register-hook.mjs tools/probe-guidance.mjs",
@@ -93,11 +108,10 @@
     "dsh",
     "dsh-plugin",
     "github",
-    "gh-cli"
+    "gh-cli",
+    "approval-gate",
+    "self-update",
+    "cordis-plugin"
   ],
-  "license": "MIT",
-  "engines": {
-    "node": ">=18",
-    "dsh": ">=0.2.0-0 <0.3.0"
-  }
+  "license": "MIT"
 }

@@ -1,10 +1,26 @@
-# dsh-github-toolkit
+# dsh-github-gate
 
-面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 GitHub 工具箱：基于
-GitHub CLI 的类型化 `github_*` 工具、分层凭据链、GitHub Device Flow 授权、绑定工作区的仓库
-推断，以及一道带护栏的 REST 直通接口。
+**面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 GitHub 工具：写操作不会意外发生。**
 
-Host 侧工具，加一个小浏览器半身（分支胶囊）。零运行时依赖。无构建步骤。
+九个类型化 `github_*` 工具，全部基于 GitHub CLI。**所有改动远端状态的动作（23 个）都必须先有
+`confirm: true`，再经过一道人工审批门。** 模型设的那个标志是它的意图，不是用户的同意。
+
+```text
+github_pr { action: "merge", number: 42, confirm: true }
+  → 弹出审批提示，写明是哪个 PR；回答「否」就停下
+  → 同意后才执行 gh pr merge 42 --repo owner/name
+```
+
+- **argv 数组，永不经过 shell。** `gh` 以 `shell: false` 启动，模型给的文本在结构上就无法变成
+  shell 语法——不是靠过滤。
+- **一条凭据链，每次调用重新解析。** DSH 凭据存储 → `GH_TOKEN` / `GITHUB_TOKEN` →
+  `gh auth login` → git credential helper。轮换 token 对下一次调用即生效。
+- **在 GUI 里配置。** 设置 → 插件 → GitHub：粘贴 PAT、对着 API 测一次连通、看到当前生效的是
+  哪一层。token 不会被回显。
+- **分支胶囊**在会话头部：当前分支、它的 PR，以及一个在无法判定调用者时**拒绝服务**的切换菜单。
+- **摘要校验的自更新。** `github_update` 暂存一个 release，其 sha256 会与 GitHub 公布的值核对。
+
+Host 侧工具，加一个小浏览器半身。零运行时依赖。无构建步骤。
 
 > **要求**：DeepSeek Harness `>=0.2.0-0 <0.3.0`，以及 `PATH` 上的
 > [GitHub CLI](https://cli.github.com/)（`gh`）。Linux / macOS / Windows 均可。
@@ -39,14 +55,14 @@ Host 侧工具，加一个小浏览器半身（分支胶囊）。零运行时依
 两种方式，都通过 Harness 的插件管理器（`plugin_manager` 的 `install_bundle`）：
 
 1. **从 GitHub Release 安装** —— 从 [Releases](../../releases) 下载
-   `dsh-github-toolkit-<版本>.tgz`，让 `install_bundle` 指向解包后的包目录，或指向存放它的本地路径。
+   `dsh-github-gate-<版本>.tgz`，让 `install_bundle` 指向解包后的包目录，或指向存放它的本地路径。
 2. **从自己的 checkout 打包安装**：
 
    ```bash
    npm pack --pack-destination ../packages     # 在源码目录之外打包
    ```
 
-   然后安装 `../packages/dsh-github-toolkit-<版本>.tgz`。
+   然后安装 `../packages/dsh-github-gate-<版本>.tgz`。
 
 **用打包好的 tarball 安装，不要从源码目录安装。** 这不是风格偏好。把工作区目录以 `link:`
 方式安装会生成一个 junction，而 launcher 的 runtime resolution 不会经由它提供裸
@@ -81,8 +97,8 @@ runtime resolution 依据插件**自己的 manifest** 决定提供什么——`p
 ## 配置
 
 ```yaml
-- id: github-toolkit
-  name: dsh-github-toolkit
+- id: github-gate
+  name: dsh-github-gate
   config:
     defaultRepo: owner/name          # 调用省略 repo 时的兜底；留空则从工作区 remote 推断
     timeoutMs: 60000                 # 通用命令超时

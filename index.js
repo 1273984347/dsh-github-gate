@@ -1,5 +1,5 @@
 /**
- * dsh-github-toolkit — a distilled GitHub toolkit for DeepSeek Harness.
+ * dsh-github-gate — a distilled GitHub toolkit for DeepSeek Harness.
  *
  * Two halves: the Host tools (this file and `lib/`) and one small Client module
  * (`client.js`, the session-header branch pill). Zero runtime dependencies, no
@@ -46,6 +46,7 @@ import {
 import { resolveRepo } from './lib/workspace.js'
 import { registerDomainTools, installDestructiveApproval } from './lib/registry.js'
 import { installClientBridge } from './lib/client-bridge.js'
+import { installSettingsRoutes } from './lib/settings-routes.js'
 import { installGuidance } from './lib/guidance.js'
 
 /**
@@ -66,7 +67,7 @@ function pluginVersion() {
 }
 
 /** Cordis plugin name. */
-export const name = 'github-toolkit'
+export const name = 'github-gate'
 
 /**
  * Required services. `tools` is the only hard dependency; the credentials seam
@@ -376,12 +377,25 @@ export function apply(ctx, rawConfig) {
     guidance,
   })
 
+  // Settings → Plugins → GitHub. Writes a credential, so every route fails CLOSED
+  // when no `connection` service can judge the caller — a page whose purpose is to
+  // store a secret must not be reachable in a composition that cannot authenticate.
+  installSettingsRoutes(ctx, {
+    runner,
+    logger: ctx.logger,
+    credentials,
+    credentialRef: cfg.credentialRef,
+    timeoutMs: cfg.timeoutMs,
+    version: pluginVersion(),
+    describeAuth: () => describeAuth({ credentials, runner, credentialRef: cfg.credentialRef, env: credentialEnv }),
+  })
+
   // Optional: deny shell-level git mutations so the plugin's own gated actions
   // are the only path. Off by default, because dsh already owns permissions and
   // a second, invisible refusal layer surprises users who approved an action.
   installShellGitGuard(ctx, cfg)
 
   ctx.effect(() => () => {
-    ctx.logger?.info?.('dsh-github-toolkit disposed')
+    ctx.logger?.info?.('dsh-github-gate disposed')
   })
 }

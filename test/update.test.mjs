@@ -54,7 +54,7 @@ function releasePayload(overrides = {}) {
     published_at: '2026-02-01T00:00:00Z',
     prerelease: false,
     assets: [{
-      name: 'dsh-github-toolkit-2.0.0.tgz',
+      name: 'dsh-github-gate-2.0.0.tgz',
       size: Buffer.byteLength(body),
       digest: `sha256:${createHash('sha256').update(body).digest('hex')}`,
       browser_download_url: 'https://example.invalid/a.tgz',
@@ -104,7 +104,7 @@ test('update: a release payload is reduced without throwing on missing fields', 
 })
 
 test('update: the installable artifact is the tarball, and its absence is reported', () => {
-  assert.equal(pickTarball(parseRelease(releasePayload()))?.name, 'dsh-github-toolkit-2.0.0.tgz')
+  assert.equal(pickTarball(parseRelease(releasePayload()))?.name, 'dsh-github-gate-2.0.0.tgz')
   const noTarball = parseRelease(releasePayload({ assets: [{ name: 'notes.txt', size: 1, digest: '', browser_download_url: '' }] }))
   assert.equal(pickTarball(noTarball), undefined)
 })
@@ -136,7 +136,7 @@ test('update: a staged artifact is re-verified rather than trusted by name', () 
   const dir = freshCache()
   const body = 'artifact bytes'
   const asset = {
-    name: 'dsh-github-toolkit-2.0.0.tgz',
+    name: 'dsh-github-gate-2.0.0.tgz',
     digest: `sha256:${createHash('sha256').update(body).digest('hex')}`,
   }
   assert.equal(findStaged(dir, asset), undefined, 'nothing staged yet')
@@ -169,9 +169,9 @@ test('update: the check cache expires and degrades to absent', () => {
 })
 
 test('update: the default cache directory is under the system temp dir', () => {
-  assert.equal(updateCacheDir(''), join(tmpdir(), 'dsh-github-toolkit-updates'))
+  assert.equal(updateCacheDir(''), join(tmpdir(), 'dsh-github-gate-updates'))
   assert.equal(updateCacheDir('D:/custom'), 'D:/custom')
-  assert.equal(DEFAULT_UPDATE_REPO, '1273984347/dsh-github-toolkit')
+  assert.equal(DEFAULT_UPDATE_REPO, '1273984347/dsh-github-gate')
 })
 
 // ---------------------------------------------------------------------------
@@ -271,7 +271,7 @@ test('update stage: downloads, verifies the digest, and never claims to install'
   // honest field is "unverified", which tells the caller to check instead of guess.
   assert.equal(result.data.next.restartRequired, 'unverified')
   assert.match(result.stdout, /VERIFY the running generation/)
-  assert.ok(result.data.path.endsWith('dsh-github-toolkit-2.0.0.tgz'))
+  assert.ok(result.data.path.endsWith('dsh-github-gate-2.0.0.tgz'))
   assert.match(result.stdout, /Not installed/)
   // The download used the release tag, not "latest".
   const download = runner.calls.find((call) => call.argv[0] === 'release')

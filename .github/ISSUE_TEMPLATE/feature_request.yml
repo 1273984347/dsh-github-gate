@@ -1,0 +1,65 @@
+name: Feature request
+description: A GitHub operation this plugin does not cover, or a behaviour it should change.
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This plugin deliberately covers a narrow slice of GitHub through the `gh` CLI.
+        A request is strongest when it names the `gh` command that would do the work —
+        if `gh` cannot do it, the answer is usually `github_api`, not a new typed action.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that the plugin makes hard or impossible?
+    validations:
+      required: true
+
+  - type: input
+    id: gh-command
+    attributes:
+      label: The gh command that would do it
+      description: Paste the argv, e.g. `gh project item-list 1 --owner org --format json`. Leave empty if there is none.
+      placeholder: "gh ..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: |
+        Usually this is `github_api` with a REST path. If you have one, paste the call —
+        it tells us whether a typed action is really needed or the escape hatch is enough.
+      render: text
+    validations:
+      required: false
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - New action on an existing tool
+        - New tool
+        - Change an existing action's behaviour
+        - Configuration / installation
+        - Documentation
+        - Web UI
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: gates
+    attributes:
+      label: Safety classification
+      description: |
+        Every action that changes remote state must be classified `destructive`, so it
+        needs `confirm: true` and passes the approval seam. Requests that add a write
+        action are expected to say so.
+      options:
+        - label: 'This adds or changes an action that writes to GitHub, and I expect it to require `confirm: true` and an approval prompt.'
+          required: false

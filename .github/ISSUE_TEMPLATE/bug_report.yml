@@ -1,0 +1,79 @@
+name: Bug report
+description: Something the plugin did wrong, or refused to do when it should have.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A report is only actionable if the failure can be reproduced. The fields below
+        ask for exactly what this plugin's own diagnostics would ask for.
+
+        Please do **not** paste a token. `github_auth token` prints one; redact it.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The tool result you got, and what you expected instead.
+      placeholder: |
+        github_pr { action: "review", number: 7, reviewAction: "approve", confirm: true }
+        -> returns "unknown flag: --approve"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: The exact tool call and arguments. A tool call plus its result is worth more than a description.
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - A github_* tool returns the wrong thing / fails
+        - Credentials (auth chain, Device Flow, token store)
+        - Approval gate / destructive classification
+        - Update (github_update check/stage)
+        - Web UI (branch pill, settings page)
+        - Installation / packaging
+        - Something else
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Plugin version, DSH version, and gh version.
+      placeholder: "dsh-github-gate 2.0.0 · DSH 0.2.x · gh 2.102.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: probe
+    attributes:
+      label: Connectivity probe output
+      description: |
+        Run `github_auth` with action `probe` and paste the result. It isolates each
+        layer (gh executable, credential chain, CLI login, API round trip, workspace
+        repository, git route) and names the one that failed. Skip this only if the
+        bug is clearly not connectivity-related.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same failure.
+          required: true
+        - label: I removed any token or secret from the output I pasted.
+          required: true

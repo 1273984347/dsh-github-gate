@@ -6,8 +6,8 @@
 # earlier design and this comment still said so; the schema describes the keys, it does not
 # make them required, and lib/config.js still supplies every default at runtime.
 - insert:
-    - id: github-toolkit
-      name: dsh-github-toolkit
+    - id: github-gate
+      name: dsh-github-gate
       config:
         ghPath: ""
         gitPath: ""

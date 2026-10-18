@@ -238,7 +238,7 @@ Windows 文件锁失败：
 
 ```
 1. 版本核对：磁盘版本 vs 进程启动时间（或用诊断路由问运行中的版本）
-2. 外部探针：GET /dsh-github-toolkit/branch?sessionId=x
+2. 外部探针：GET /dsh-github-gate/branch?sessionId=x
    ├─ 404 → 未注册（host 侧）
    ├─ 401 → 已注册且鉴权生效（正常）
    └─ 200 → 已注册但未鉴权（安全缺口）
@@ -249,7 +249,7 @@ Windows 文件锁失败：
 
 第 1、2 步合计 < 30 秒，且**不需要浏览器**。
 
-**诊断路由**：`GET /dsh-github-toolkit/diagnostics`（同样需要鉴权）返回
+**诊断路由**：`GET /dsh-github-gate/diagnostics`（同样需要鉴权）返回
 运行中世代的版本、四个服务的存在情况、已注册路由、工作区数量。
 
 ### 第 0 步（最先做）：连通性探针

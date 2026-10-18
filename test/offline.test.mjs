@@ -1418,27 +1418,27 @@ test('client bridge: the branch route serves only REGISTERED workspaces', async 
   }
 
   // A registered workspace resolves, and the branch comes back.
-  const ok = await respond('/dsh-github-toolkit/branch?path=' + encodeURIComponent('D:\\work\\registered'))
+  const ok = await respond('/dsh-github-gate/branch?path=' + encodeURIComponent('D:\\work\\registered'))
   assert.equal(ok.status, 200)
   assert.deepEqual(ok.body, { ok: true, path: 'D:\\work\\registered', branch: 'feat/pill', detached: false, pr: null })
   assert.deepEqual(calls.git[0], ['rev-parse', '--abbrev-ref', 'HEAD'])
 
   // An UNREGISTERED path must be refused without running git at all.
   calls.git.length = 0
-  const refused = await respond('/dsh-github-toolkit/branch?path=' + encodeURIComponent('C:\\Windows'))
+  const refused = await respond('/dsh-github-gate/branch?path=' + encodeURIComponent('C:\\Windows'))
   assert.equal(refused.body.ok, false)
   assert.equal(refused.body.error, 'unknown-workspace')
   assert.equal(calls.git.length, 0, 'no command may run for an unregistered path')
 
   // A missing/empty path is the same refusal, not a default directory.
   for (const query of ['', '?path=', '?path=%20']) {
-    const empty = await respond(`/dsh-github-toolkit/branch${query}`)
+    const empty = await respond(`/dsh-github-gate/branch${query}`)
     assert.equal(empty.body.ok, false, `query ${JSON.stringify(query)} must be refused`)
   }
   assert.equal(calls.git.length, 0)
 
   // Only GET and HEAD are served.
-  const wrongMethod = await respond('/dsh-github-toolkit/branch?path=x', 'POST')
+  const wrongMethod = await respond('/dsh-github-gate/branch?path=x', 'POST')
   assert.equal(wrongMethod.status, 405)
   assert.equal(calls.git.length, 0)
 })
@@ -1462,7 +1462,7 @@ test('client bridge: a detached HEAD is reported as a state, not as a branch', a
 
   /** @type {any} */
   let body
-  await branchRoute(routes).handler({ method: 'GET', url: '/dsh-github-toolkit/branch?path=/w' }, {
+  await branchRoute(routes).handler({ method: 'GET', url: '/dsh-github-gate/branch?path=/w' }, {
     setHeader: () => {}, statusCode: 200, end: (text) => { body = JSON.parse(text) },
   })
   assert.deepEqual(body, { ok: true, path: '/w', branch: '', detached: true, pr: null })
@@ -1476,7 +1476,7 @@ test('client bridge: the route waits for webServer by LISTENING, not by declarin
   // 2. `ctx.inject(['webServer'], cb)` — the callback did not register it either.
   // 3. A second plugin ROW declaring `webServer` — right in principle, but a
   //    profile bundle's row may not use a bare SUBPATH: the launcher supplies a
-  //    profile package by its exact name, so `dsh-github-toolkit/web` resolved
+  //    profile package by its exact name, so `dsh-github-gate/web` resolved
   //    nowhere and the row reported "failed to import".
   //
   // Cordis emits `internal/service` for every service registration, so the route
@@ -1493,7 +1493,7 @@ test('client bridge: the route waits for webServer by LISTENING, not by declarin
   assert.equal(routes.length, 4, 'a webServer that is already up registers every route immediately')
   for (const route of routes) {
     assert.equal(route.kind, 'exact')
-    assert.match(route.path, /^\/dsh-github-toolkit\//)
+    assert.match(route.path, /^\/dsh-github-gate\//)
   }
 
   // A webServer that arrives later is caught by the listener.
@@ -1535,7 +1535,7 @@ test('client bridge: the route is owned by an EFFECT, so disposal releases it', 
   // MEASURED failure this pins: the first version registered the route and merely
   // held its disposer. Disposing the plugin's fiber therefore did NOT release the
   // route, so the next activation — the HMR path an install takes — failed with
-  // `webserver: duplicate exact route "/dsh-github-toolkit/branch"` and the entry
+  // `webserver: duplicate exact route "/dsh-github-gate/branch"` and the entry
   // did not activate. "Register every resource inside apply with ctx.effect or
   // ctx.on and return its cleanup" is the contract, and this is why.
   const { installClientBridge, BRANCH_ROUTE, BRANCHES_ROUTE, DIAGNOSTICS_ROUTE, SWITCH_ROUTE } = await import('../lib/client-bridge.js')
@@ -1612,7 +1612,7 @@ test('client bridge: the session form lets the browser name a session, never a d
   let body
   const ask = async (query) => {
     body = undefined
-    await branchRoute(routes).handler({ method: 'GET', url: '/dsh-github-toolkit/branch' + query }, {
+    await branchRoute(routes).handler({ method: 'GET', url: '/dsh-github-gate/branch' + query }, {
       setHeader: () => {}, statusCode: 200, end: (text) => { body = JSON.parse(text) },
     })
     return body
@@ -1668,7 +1668,7 @@ test('client bridge: an unauthenticated request is refused, not served', async (
       get statusCode() { return seen.status },
       end: (text) => { seen.body = String(text ?? '') },
     }
-    await branchRoute(routes).handler({ method: 'GET', url: '/dsh-github-toolkit/branch?sessionId=sess-a', headers }, res)
+    await branchRoute(routes).handler({ method: 'GET', url: '/dsh-github-gate/branch?sessionId=sess-a', headers }, res)
     return seen
   }
 
@@ -1709,7 +1709,7 @@ test('client bridge: the pull request is reported, and its failure never costs t
     installClientBridge(ctx, { runner, logger: ctx.logger })
     /** @type {any} */
     let body
-    await branchRoute(routes).handler({ method: 'GET', url: '/dsh-github-toolkit/branch?sessionId=sess-a' }, {
+    await branchRoute(routes).handler({ method: 'GET', url: '/dsh-github-gate/branch?sessionId=sess-a' }, {
       setHeader: () => {}, statusCode: 200, end: (text) => { body = JSON.parse(text) },
     })
     return body
@@ -1798,7 +1798,7 @@ test('client bridge: the diagnostics route names what is present, and is gated',
 
   const report = JSON.parse(await ask({ 'x-dsh-token': 'good' }))
   assert.equal(report.ok, true)
-  assert.equal(report.plugin, 'dsh-github-toolkit')
+  assert.equal(report.plugin, 'dsh-github-gate')
   assert.equal(report.version, '9.9.9', 'the RUNNING generation reports its version')
   assert.deepEqual(report.services, {
     webServer: true, workspaceRegistry: true, connection: true, jobs: true,

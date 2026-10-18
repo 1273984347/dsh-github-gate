@@ -182,7 +182,7 @@ check(stale.length === 0, 'no reference to the removed lib/github.js', stale.joi
 
 // 4. The manifest declares what dsh reads.
 const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
-check(manifest.name === 'dsh-github-toolkit', 'manifest name', manifest.name)
+check(manifest.name === 'dsh-github-gate', 'manifest name', manifest.name)
 check(manifest.dsh?.bundle?.patch === './cordis.patch.yml', 'manifest declares dsh.bundle.patch', String(manifest.dsh?.bundle?.patch))
 check(manifest.dependencies === undefined, 'manifest declares no runtime dependencies (no install-time code execution)', JSON.stringify(manifest.dependencies ?? null))
 
@@ -405,7 +405,7 @@ check(badExports.length === 0, 'every manifest export resolves', badExports.join
 // 9. The plugin entry exports the documented shape.
 const entry = await import(`file:///${join(root, 'index.js').replaceAll('\\', '/')}`)
 check(typeof entry.apply === 'function', 'entry exports apply()', typeof entry.apply)
-check(entry.name === 'github-toolkit', 'entry exports name', String(entry.name))
+check(entry.name === 'github-gate', 'entry exports name', String(entry.name))
 check(Array.isArray(entry.inject) && entry.inject.includes('tools'), 'entry injects the tools service', JSON.stringify(entry.inject))
 check(entry.default === undefined, 'entry has no default export (the Loader drops inject on default exports)', String(entry.default))
 check(entry.Config !== undefined && typeof entry.Config['~standard']?.validate === 'function',

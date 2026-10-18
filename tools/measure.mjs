@@ -188,7 +188,7 @@ const report = {
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify(report, null, 2))
 } else {
-  console.log(`dsh-github-toolkit ${report.version}`)
+  console.log(`dsh-github-gate ${report.version}`)
   console.log(`${report.measuredWith}\n`)
   console.log('area                     files     lines   non-blank')
   console.log('-'.repeat(58))

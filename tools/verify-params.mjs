@@ -447,7 +447,7 @@ for (const item of results) {
       published_at: '2026-01-01T00:00:00Z',
       prerelease: false,
       assets: [{
-        name: 'dsh-github-toolkit-9.9.9.tgz',
+        name: 'dsh-github-gate-9.9.9.tgz',
         size: ARTIFACT.length,
         digest: DIGEST,
         browser_download_url: 'https://example.invalid/a.tgz',
@@ -465,7 +465,7 @@ for (const item of results) {
           }
           if (argv[0] === 'release') {
             mkdirSync(cacheDir, { recursive: true })
-            writeFileSync(joinPath(cacheDir, 'dsh-github-toolkit-9.9.9.tgz'), ARTIFACT)
+            writeFileSync(joinPath(cacheDir, 'dsh-github-gate-9.9.9.tgz'), ARTIFACT)
             return { ok: true, stdout: '', stderr: '' }
           }
           return { ok: true, stdout: '', stderr: '' }

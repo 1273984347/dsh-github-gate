@@ -27,7 +27,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-const PACKAGE = 'dsh-github-toolkit'
+const PACKAGE = 'dsh-github-gate'
 
 /** Read one CLI flag's value. */
 function flag(name) {
@@ -94,7 +94,7 @@ if (manifest !== null) {
     const onDisk = existsSync(installedAt)
       ? JSON.parse(readFileSync(installedAt, 'utf8')).version
       : null
-    const fromTarball = /dsh-github-toolkit-(.+)\.tgz$/.exec(file)?.[1]
+    const fromTarball = /dsh-github-gate-(.+)\.tgz$/.exec(file)?.[1]
     check(onDisk !== null && fromTarball !== undefined && onDisk === fromTarball,
       'the installed version matches the declared tarball',
       onDisk === null ? 'no package on disk' : `disk ${onDisk} vs tarball ${fromTarball}`)

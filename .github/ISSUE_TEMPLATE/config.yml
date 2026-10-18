@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue
+    url: https://github.com/1273984347/dsh-github-gate/security/advisories/new
+    about: Report a vulnerability privately. Do not open a public issue for it.
+  - name: Install or usage question
+    url: https://github.com/1273984347/dsh-github-gate#install
+    about: Check the README first — installation, requirements and the safety model are documented there.

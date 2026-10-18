@@ -1,9 +1,35 @@
-# dsh-github-toolkit
+# dsh-github-gate
 
-A distilled GitHub toolkit for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness):
-typed `github_*` tools over the GitHub CLI, a layered credential chain, GitHub
-Device Flow authorization, workspace-bound repository detection, and a guarded
-REST escape hatch.
+<p>
+  <a href="https://github.com/1273984347/dsh-github-gate/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/1273984347/dsh-github-gate/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/1273984347/dsh-github-gate/releases"><img alt="latest release" src="https://img.shields.io/github/v/release/1273984347/dsh-github-gate?color=6c5ce7"></a>
+  <img alt="license" src="https://img.shields.io/github/license/1273984347/dsh-github-gate?color=4b6fff">
+  <img alt="zero runtime dependencies" src="https://img.shields.io/badge/runtime%20deps-0-eab308">
+</p>
+
+**GitHub tools for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) where a write cannot happen by accident.**
+
+Nine typed `github_*` tools over the GitHub CLI. Every action that changes remote
+state — 23 of them — needs `confirm: true` **and** passes a human approval seam.
+The model's flag is intent; it is not consent.
+
+```text
+github_pr { action: "merge", number: 42, confirm: true }
+  → an approval prompt naming the pull request; "no" stops it
+  → after consent: gh pr merge 42 --repo owner/name
+```
+
+- **Argv arrays, never a shell.** `gh` is spawned with `shell: false`, so model text
+  cannot become shell syntax — structurally, not by filtering.
+- **One credential chain, resolved per call.** DSH credential store → `GH_TOKEN` /
+  `GITHUB_TOKEN` → `gh auth login` → git credential helper. Rotating a token applies
+  to the next call.
+- **Configuration in the GUI.** Settings → Plugins → GitHub: paste a PAT, test it
+  against the API, see which layer is live. The token is never displayed back.
+- **A branch pill** in the session header: current branch, its pull request, and a
+  switch menu that fails closed when the caller cannot be judged.
+- **Digest-verified self-update.** `github_update` stages a release whose sha256 is
+  checked against the digest GitHub publishes.
 
 Host-side tools plus one small browser half. Zero runtime dependencies. No build step.
 
@@ -12,11 +38,31 @@ Host-side tools plus one small browser half. Zero runtime dependencies. No build
 
 **Topics:** `dsh-plugin` · `deepseek-harness` · `dsh` · `cordis-plugin` · `github` · `gh-cli`
 
+## Why this over another GitHub plugin
+
+Tool count is a bad proxy for usefulness — a broader surface with looser gates is
+easier to write and harder to trust. The trade this project makes is explicit:
+
+| | Other GitHub plugins for DSH | This one |
+|---|---|---|
+| Write safety | `confirm: true`, set by the model | `confirm: true` **+** an approval seam the model cannot set |
+| Raw REST | unrestricted escape hatch | path must be relative, no `..`, write methods gated at run time |
+| Correctness evidence | tests of its own API | 176 tests, 180 behaviour snapshots, and **84 argv shapes parsed by a real `gh`** |
+| Failure messages | HTTP code passed through | 401 / 403 quota / 403 SSO / 404 / 422 each name the fix |
+| Scope | as many tools as possible | 9 tools / 58 actions, one to a `gh` subcommand family |
+| Self-update | — | staged with a verified sha256, install left to the platform |
+
+If you want the largest possible tool surface with no gates, this is not the right
+plugin. If you want the model to be able to *look* at GitHub freely but need a
+person in the loop before it *changes* anything, it is.
+
 ## Table of contents
 
 - [Install](#install)
+- [Quick start](#quick-start)
 - [Guidance](#guidance)
 - [The branch pill](#the-branch-pill)
+- [Settings page](#settings-page)
 - [What it provides](#what-it-provides)
 - [Updating this plugin](#updating-this-plugin)
 - [Configuration](#configuration)
@@ -32,7 +78,7 @@ Host-side tools plus one small browser half. Zero runtime dependencies. No build
 Two ways, both through the Harness plugin manager (`plugin_manager` action
 `install_bundle`):
 
-1. **From a GitHub release** — download `dsh-github-toolkit-<version>.tgz` from
+1. **From a GitHub release** — download `dsh-github-gate-<version>.tgz` from
    [Releases](../../releases) and point `install_bundle` at the unpacked package
    directory, or at a local path holding it.
 2. **From a packed tarball of your own checkout**:
@@ -41,7 +87,7 @@ Two ways, both through the Harness plugin manager (`plugin_manager` action
    npm pack --pack-destination ../packages     # pack OUTSIDE the source directory
    ```
 
-   then install `../packages/dsh-github-toolkit-<version>.tgz`.
+   then install `../packages/dsh-github-gate-<version>.tgz`.
 
 **Install from a packed tarball, not from the source directory.** This is not a
 style preference. Installing a `link:` to a workspace directory produces a
@@ -55,6 +101,49 @@ directory itself left that directory emptied once the install completed (see
 
 The tarball is a snapshot, so editing the source requires repacking and
 reinstalling; a restart loads the new module generation.
+
+### One-command download
+
+The install scripts fetch the latest release, verify its sha256 against the digest
+GitHub publishes, and print the install path. They deliberately do not install —
+that step belongs to the plugin manager, which asks for approval:
+
+```powershell
+# Windows
+irm https://raw.githubusercontent.com/1273984347/dsh-github-gate/main/install.ps1 | iex
+```
+
+```sh
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/1273984347/dsh-github-gate/main/install.sh | sh
+```
+
+Then install the printed path with `plugin_manager` action `install_bundle`.
+
+## Quick start
+
+```text
+1. Is there a credential?
+   github_auth { action: "status" }
+     credential source: credentials-seam | environment | gh-cli | git-credential-helper | none
+
+2. No credential? Establish one.
+   github_auth { action: "login" }                  # Device Flow, needs your own OAuth App
+   — or paste a PAT in Settings → Plugins → GitHub
+   — or just run `gh auth login` in a terminal; the chain picks it up
+
+3. Something is broken?
+   github_auth { action: "probe" }                  # isolates each layer, names the failed one
+
+4. Work on a pull request.
+   github_pr { action: "status" }                   # CI for the branch you are on
+   github_pr { action: "view", number: 42 }
+   github_pr { action: "checks", number: 42 }
+   github_pr { action: "merge", number: 42, confirm: true }   # asks a person
+```
+
+The repository is taken from the workspace's git remote when `repo` is omitted, so
+the common case needs no argument.
 
 ## Guidance
 
@@ -89,6 +178,30 @@ own cannot break it.
 Neither half breaks a composition that lacks the `systemPrompt`, `skills` or
 `webServer` service: the tools keep working and the guidance simply is not
 registered. The diagnostics route reports which halves are live.
+
+## Settings page
+
+`Settings → Plugins → GitHub` (a tab inside the Plugins section — no nav entry of
+its own, because the section owner renders each contribution as a tab).
+
+| Shows | Does |
+|---|---|
+| whether a credential is configured, and which layer supplied it | — |
+| the account, when the chain can identify it | — |
+| the credential reference and the running plugin version | — |
+| a password field | writes the token to the Harness credential store |
+| **Test connection** | one real `gh api user` round trip through the same chain the tools use |
+
+Two deliberate properties:
+
+- **The page cannot read the token back.** The Host never returns it and the field
+  is cleared on save. A settings page that can display a secret is a settings page
+  that leaks it to every screenshot.
+- **Every route fails closed.** These routes write a credential, so a composition
+  whose `connection` service cannot judge the caller gets a `403` rather than a
+  service — the same rule `/switch` follows.
+
+Rotating a token needs no restart: the chain resolves per operation.
 
 ### Why `peerDependencies` are declared
 
@@ -131,7 +244,7 @@ github_update { "action": "check" }
   installed: 1.7.0   latest: 1.8.0   status: an upgrade is available
 
 github_update { "action": "stage" }
-  staged: <tmp>/dsh-github-toolkit-updates/dsh-github-toolkit-1.8.0.tgz
+  staged: <tmp>/dsh-github-gate-updates/dsh-github-gate-1.8.0.tgz
   digest: sha256 verified against the digest GitHub publishes
 ```
 
@@ -187,8 +300,8 @@ Register an App with Device Flow enabled at
 <https://github.com/settings/applications/new>, then set its client id:
 
 ```yaml
-- id: github-toolkit
-  name: dsh-github-toolkit
+- id: github-gate
+  name: dsh-github-gate
   config:
     deviceFlowClientId: "Ov23li..."
 ```
@@ -199,8 +312,8 @@ You do not need Device Flow at all if you already have `gh auth login` or a
 ## Configuration
 
 ```yaml
-- id: github-toolkit
-  name: dsh-github-toolkit
+- id: github-gate
+  name: dsh-github-gate
   config:
     defaultRepo: owner/name        # fallback when a call omits `repo`; empty detects it from the workspace remote
     timeoutMs: 60000               # general command timeout

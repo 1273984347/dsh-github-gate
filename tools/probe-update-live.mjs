@@ -20,7 +20,7 @@ import { verifyArtifact } from '../lib/update.js'
 const exec = promisify(execFile)
 const cacheDir = join(tmpdir(), `dsh-update-live-${process.pid}`)
 
-const cfg = normalizeConfig({ updateRepo: '1273984347/dsh-github-toolkit', updateCacheDir: cacheDir })
+const cfg = normalizeConfig({ updateRepo: '1273984347/dsh-github-gate', updateCacheDir: cacheDir })
 const runner = createRunner(cfg, null, async () => '')
 const deps = {
   runner,

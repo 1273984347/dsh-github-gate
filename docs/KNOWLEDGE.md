@@ -311,10 +311,10 @@ unknown flag | unknown command | unknown shorthand
 1. 版本核对
    磁盘 package.json 版本 vs 进程启动时间
    └─ 进程早于安装 → 旧世代，需重启
-      （也可用诊断路由 /dsh-github-toolkit/diagnostics 直接问运行中的版本）
+      （也可用诊断路由 /dsh-github-gate/diagnostics 直接问运行中的版本）
 
 2. 外部探针（不需要浏览器）
-   GET /dsh-github-toolkit/branch?sessionId=x
+   GET /dsh-github-gate/branch?sessionId=x
    ├─ 404 → 路由未注册（host 侧问题），继续 3
    ├─ 401 → 已注册且鉴权生效（正常）
    └─ 200 → 已注册但未鉴权（安全缺口）

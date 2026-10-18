@@ -1,4 +1,4 @@
-# dsh-github-toolkit 蒸馏设计说明
+# dsh-github-gate 蒸馏设计说明
 
 三个来源仓库的取舍记录。目标不是合并三个仓库，而是**只取各自真正站得住的部分**，
 拼成一个与 dsh 0.2.0-rc.2 兼容、不触发 peer 版本豁免闸门的单一 host 插件。
@@ -93,7 +93,7 @@ A 的四道门保留并强化：
 Host-only bundle，零依赖，预编译产物入库，无构建步骤：
 
 ```
-dsh-github-toolkit/
+dsh-github-gate/
   package.json          dsh.bundle.patch 指向 patch
   cordis.patch.yml      insert 一行
   index.js              apply/inject/name/Config
@@ -280,7 +280,7 @@ release 7 / actions 10 / search 5 / api 1 个动作），guard 按配置安装�
 第一次安装用 `install_bundle` 指向工作区目录，落盘为 junction：
 
 ```
-dependencies: + dsh-github-toolkit link:D:/dsh/github-toolkit
+dependencies: + dsh-github-gate link:D:/dsh/github-gate
 ```
 
 当时我担心它会触发桌面端启动闸门，去读 dsh 实现后发现 `PROFILE_UPGRADE_REQUIRED`
@@ -295,7 +295,7 @@ junction 没问题。
 ```
 Config.listConfigs  -> status: "inactive"
 github_repo         -> unknown tool            （8 个工具全部消失）
-install_bundle 返回 -> warnings: ["github-toolkit (dsh-github-toolkit): failed to import"]
+install_bundle 返回 -> warnings: ["github-gate (dsh-github-gate): failed to import"]
 ```
 
 ### 5.6 根因：runtime resolution 只提供**被声明过**的包
@@ -360,7 +360,7 @@ semver.satisfies('0.2.0-rc.2', '^0.1.0-rc.6', {includePrerelease:true}) -> false
 
 ```bash
 npm pack --pack-destination D:\dsh\packages
-# 然后 install_bundle -> target: D:\dsh\packages\dsh-github-toolkit-0.1.0.tgz
+# 然后 install_bundle -> target: D:\dsh\packages\dsh-github-gate-0.1.0.tgz
 ```
 
 代价：tarball 是快照，工作区里的源码改动不会自动生效，需要重新 pack + 安装。
@@ -368,7 +368,7 @@ npm pack --pack-destination D:\dsh\packages
 ### 5.8 一次数据丢失，以及正确的打包位置
 
 第一次打 tarball 时我把输出放在了**源目录内部**
-（`D:\dsh\github-toolkit\dsh-github-toolkit-0.1.0.tgz`），随后从该路径安装。
+（`D:\dsh\github-gate\dsh-github-gate-0.1.0.tgz`），随后从该路径安装。
 安装成功后，**源目录内容被清空**（`LastWriteTime` 与那次安装的完成时刻
 `02:38:43` 完全一致），`test/` 与 `tools/` 全部丢失。
 
@@ -507,7 +507,7 @@ dictionaries.set(id, {
 解析器读的是 **`meta.title` / `meta.description`**，而我第一版写成扁平的
 `{ "title": ..., "description": ... }` —— 于是 `meta` 是 `undefined`，我写的那两个字段
 被**完全忽略**，标题回退到 `package.json` 的 `name`。设置页还会把字面包名回退值**缩短**
-（去掉 npm scope 与 `dsh-` 前缀），所以卡片上显示的是 **`github-toolkit`**，而不是
+（去掉 npm scope 与 `dsh-` 前缀），所以卡片上显示的是 **`github-gate`**，而不是
 「GitHub 工具箱」——难怪看起来像「没有」。
 
 官方 `references/host-plugin.md` 的示例本来就是 `{ "meta": { "title": ..., "description": ... } }`，
@@ -529,7 +529,7 @@ icon declared        : ./icon.svg | exists: true
 原因在别处——例如页面缓存了旧的 inventory，或者看的不是「设置 → 插件」这一页。
 
 **已确认（用户复核）：** 修正为 0.1.1 并重装后，刷新页面，设置 → 插件 里正常显示为
-「GitHub 工具箱」。此前显示的是被缩短的包名 `github-toolkit`，这正是「没看到」的原因。
+「GitHub 工具箱」。此前显示的是被缩短的包名 `github-gate`，这正是「没看到」的原因。
 
 ## 七、未验证的部分（如实说明）
 
@@ -740,7 +740,7 @@ hidden**，让状态栏安静消失而不是报错。
 | schemastery / defineTool 探针 | 6/6、12/12 |
 | bundle 完整性 | 全部通过（含上述五项新检查） |
 | 真实只读 gh | 14/14 |
-| 已安装制品 | `dsh-github-toolkit 0.2.0`，`application: applied`，无警告 |
+| 已安装制品 | `dsh-github-gate 0.2.0`，`application: applied`，无警告 |
 
 **未完成的一项，如实记录：新能力的实机验证需要重启。** 装上 0.2.0 后，
 `Config.listConfigs` 投影出的 schema **没有** `approvalForDestructive` 这个 0.2.0 新增字段，

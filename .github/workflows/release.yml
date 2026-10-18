@@ -1,0 +1,59 @@
+name: release
+
+# A tag is the only trigger: releases are cut from a version that was committed,
+# not from whatever happens to be on a branch. The workflow packs the SAME tarball
+# a user installs, so the release asset and the repository cannot disagree.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to release (must already exist)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The tag and the manifest must name the same version
+        run: |
+          node -e "
+            const p = require('./package.json');
+            const tag = (process.env.TAG || '').replace(/^v/, '');
+            if (tag !== p.version) {
+              console.error('tag ' + tag + ' != package.json ' + p.version);
+              process.exit(1);
+            }
+            console.log('version agrees:', p.version);
+          "
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+
+      - name: Pack the bundle (outside the source tree, per docs/DESIGN.md §5.8)
+        run: |
+          mkdir -p /tmp/dist
+          npm pack --pack-destination /tmp/dist
+          ls -l /tmp/dist
+
+      - name: Publish the release with that tarball
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /tmp/dist/*.tgz
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      # The release asset is the installable artifact. Publishing to npm is a
+      # separate, manual step: an npm publish cannot be undone, so it does not
+      # belong in an automatic pipeline triggered by a tag.

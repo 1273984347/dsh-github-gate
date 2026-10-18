@@ -65,7 +65,7 @@ const CLAIMS = [
   `\`npm run verify\` exiting 0 means the bundle is correct. (It runs ${scripts.includes('verify:offline') ? 'offline and live checks' : 'some checks'} but does NOT include: ${['encoding', 'report:check', 'profile:check'].filter((s) => scripts.includes(s)).join(', ') || 'none'}. Check what it actually covers and what it therefore cannot report.)`,
   `Every guard in \`tools/\` (${toolCount} files) can FAIL. A guard that passes everything is not a guard — for each one, construct an input that should fail it and confirm it does.`,
   'The skills in `skills/*/SKILL.md` are what the running composition serves. (Files being correct is not the claim — P-25 was exactly this gap.)',
-  'The four webServer routes are gated. (`/dsh-github-toolkit/branch`, `/branches`, `/diagnostics`, `/switch`.)',
+  'The four webServer routes are gated. (`/dsh-github-gate/branch`, `/branches`, `/diagnostics`, `/switch`.)',
   'Resources are disposed when the plugin unloads, so a reload does not leak or duplicate.',
   'The retrospective report states figures that match the current measurements.',
   'The installed copy in the profile matches the source tree.',

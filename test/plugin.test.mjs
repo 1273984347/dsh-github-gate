@@ -37,7 +37,7 @@ function authRunner({ ghAuthed = false, gitCredential = '' } = {}) {
 }
 
 test('plugin: exports the documented shape and registers every tool', () => {
-  assert.equal(name, 'github-toolkit')
+  assert.equal(name, 'github-gate')
   assert.deepEqual(inject, ['tools'])
   assert.equal(typeof apply, 'function')
   // The Config export is what makes Cordis validate the row at activation.

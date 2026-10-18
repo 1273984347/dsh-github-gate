@@ -137,7 +137,7 @@ function sampleArgv() {
     ['github_update:check', [['api', 'repos/o/r/releases/latest'], ['api', 'repos/o/r/releases?per_page=1']]],
     ['github_update:stage', [
       ['api', 'repos/o/r/releases/tags/v1.0.0'],
-      ['release', 'download', 'v1.0.0', '--repo', 'o/r', '--pattern', 'dsh-github-toolkit-1.0.0.tgz', '--dir', '.', '--clobber'],
+      ['release', 'download', 'v1.0.0', '--repo', 'o/r', '--pattern', 'dsh-github-gate-1.0.0.tgz', '--dir', '.', '--clobber'],
     ]],
   ])
 }

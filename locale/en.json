@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "GitHub Toolkit",
+    "description": "Typed GitHub tools over the gh CLI: repositories, pull requests, issues, releases, Actions, and search, with layered credentials and a guarded REST escape hatch."
+  }
+}

@@ -1,0 +1,81 @@
+name: ci
+
+# What CAN run anywhere: syntax, encoding, manifest integrity, and the guards that
+# need no DeepSeek Harness installation. The offline suite is deliberately absent —
+# it resolves `@deepseek-ai/schemastery` and `@deepseek-ai/dsh-tools` by
+# reconstructing them from a local DSH `app.asar` (`tools/ensure-vendor.mjs`), which
+# a fresh CI runner does not have. A job that cannot run its subject would be worse
+# than no job, so the suite stays a documented local check instead of a green badge
+# that proves nothing.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Syntax-check every source file
+        run: |
+          fail=0
+          while IFS= read -r -d '' file; do
+            node --check "$file" || fail=1
+          done < <(find . -name '*.js' -o -name '*.mjs' | grep -v -e node_modules -e '\.vendor')
+          exit $fail
+
+      - name: Encoding is clean (no BOM, no NUL, valid UTF-8, consistent EOL)
+        run: node tools/check-encoding.mjs
+
+      - name: package.json parses and declares the bundle entry points
+        run: |
+          node -e "
+            const p = require('./package.json');
+            const missing = ['name','version','type','main','exports','dsh'].filter((k) => p[k] === undefined);
+            if (missing.length) { console.error('package.json missing:', missing); process.exit(1); }
+            if (!p.dsh.bundle || !p.dsh.bundle.patch) { console.error('no dsh.bundle.patch'); process.exit(1); }
+            console.log('package.json ok:', p.name + '@' + p.version);
+          "
+
+      - name: Manifest files exist and generated trees stay out of version control
+        run: |
+          node -e "
+            const { existsSync, readFileSync } = require('node:fs');
+            const required = ['index.js','client.js','cordis.patch.yml','LICENSE','README.md','icon.svg'];
+            const missing = required.filter((f) => !existsSync(f));
+            if (missing.length) { console.error('missing required file:', missing); process.exit(1); }
+            // The vendored tree is generated per machine and must never be published.
+            // Checking that it is ABSENT would fail on any developer machine that ran
+            // 'npm run vendor', so the assertion is on the ignore rule instead.
+            const ignore = readFileSync('.gitignore', 'utf8');
+            for (const rule of ['test/.vendor/', 'node_modules/', '*.tgz']) {
+              if (!ignore.includes(rule)) { console.error('.gitignore is missing:', rule); process.exit(1); }
+            }
+            console.log('layout ok');
+          "
+
+      - name: No obvious secret was committed
+        run: |
+          # A real token has a prefix and 20+ body characters. The test suite uses
+          # deliberately fake `gho_...` placeholders, which is why the length is part
+          # of the pattern rather than only the prefix.
+          if grep -rInE '(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})' \
+               --exclude-dir=node_modules --exclude-dir=.vendor . ; then
+            echo 'a credential-shaped string is committed above'
+            exit 1
+          fi
+          echo 'no credential-shaped string found'

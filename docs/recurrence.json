@@ -1,0 +1,321 @@
+{
+  "note": "Problem families and their occurrences, for tools/recurrence-report.mjs. One entry per family; `events` lists the date each member problem was found. A family with two events inside one quarter raises the alert its rule describes.",
+  "families": [
+    {
+      "id": "FAM-P-01",
+      "title": "上游语义假设未实测",
+      "rootCause": "a parameter or flag was assumed to work the way a neighbouring command works, without running --help or a probe",
+      "members": [
+        "P-02",
+        "P-04",
+        "P-05",
+        "P-06"
+      ],
+      "prevention": [
+        "PRE-01",
+        "PRE-02"
+      ],
+      "owner": "AI Agent",
+      "events": [
+        {
+          "problem": "P-02",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "gh api given --json, a flag it does not have; 5 actions failed on every call"
+        },
+        {
+          "problem": "P-04",
+          "date": "2026-10-15",
+          "severity": "P2",
+          "detail": "git flags passed to gh repo clone before the -- separator"
+        },
+        {
+          "problem": "P-05",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "release list and search repos/commits asked for field names those commands do not have"
+        },
+        {
+          "problem": "P-06",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "the whole query passed as one argv element; gh quotes each positional"
+        }
+      ]
+    },
+    {
+      "id": "FAM-P-02",
+      "title": "已知契约约束未转守卫",
+      "rootCause": "the constraint was read in the official documentation but never became a machine check",
+      "members": [
+        "P-07",
+        "P-09",
+        "P-10",
+        "P-11",
+        "P-13",
+        "P-15"
+      ],
+      "prevention": [
+        "PRE-03",
+        "PRE-04",
+        "PRE-09"
+      ],
+      "owner": "AI Agent",
+      "events": [
+        {
+          "problem": "P-07",
+          "date": "2026-10-15",
+          "severity": "P0",
+          "detail": "no peerDependencies declared, so the plugin failed to import entirely"
+        },
+        {
+          "problem": "P-09",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "sentinel resolution wrote into the frozen arguments object"
+        },
+        {
+          "problem": "P-10",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "job owner passed as an Agent object where a SessionId is required"
+        },
+        {
+          "problem": "P-11",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "background work started before the jobs.start preflight"
+        },
+        {
+          "problem": "P-13",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "resource registered without ctx.effect, so disposal leaked it"
+        },
+        {
+          "problem": "P-15",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "patch row used a bare subpath, which resolves from nowhere the launcher looks"
+        }
+      ]
+    },
+    {
+      "id": "FAM-P-03",
+      "title": "验证方法不镜像真实契约",
+      "rootCause": "the test environment differed from the runtime contract, or the verifying tool itself was wrong",
+      "members": [
+        "P-01",
+        "P-17",
+        "P-24",
+        "P-25"
+      ],
+      "prevention": [
+        "PRE-05",
+        "PRE-06",
+        "PRE-15",
+        "PRE-18"
+      ],
+      "owner": "AI Agent",
+      "events": [
+        {
+          "problem": "P-01",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "5 actions never executed successfully once; 97 offline checks were green throughout"
+        },
+        {
+          "problem": "P-17",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "a counting idiom returned zero on real matches, and a literal search treated | as text"
+        },
+        {
+          "problem": "P-24",
+          "date": "2026-10-16",
+          "severity": "P2",
+          "detail": "the guidance guard validated an in-memory copy of the skill bodies rather than the files on disk, so the two could disagree unnoticed"
+        },
+        {
+          "problem": "P-25",
+          "date": "2026-10-16",
+          "severity": "P1",
+          "detail": "probe-guidance passed 113/113 and verify exited 0 while the RUNNING composition served the previous generation of all three skill bodies: the catalog was won by a rank-250 runtime registration left over from the earlier design, which outranks the packaged provider at rank 600. Every guard tested PackSkillProvider in isolation and none consulted a real registry, so the composition was green and stale at the same time. Found by an independent audit, confirmed by invoking the skill tool, fixed by an app restart."
+        }
+      ],
+      "preventionWins": [
+        {
+          "date": "2026-10-16",
+          "note": "probe-guidance rejected three injected violations (directory/frontmatter mismatch, missing write boundary, missing description) that would otherwise have shipped silently",
+          "measures": [
+            "PRE-05",
+            "PRE-06",
+            "PRE-15"
+          ]
+        },
+        {
+          "date": "2026-10-16",
+          "note": "probe-branch-switch refused all 15 injection attempts including --force, -C and a newline-hidden second argument, on its first run",
+          "measures": [
+            "PRE-05",
+            "PRE-06",
+            "PRE-15",
+            "PRE-18"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FAM-P-04",
+      "title": "新对外接口未对照宿主安全语义",
+      "rootCause": "a new externally reachable surface was assumed to inherit the host's authentication",
+      "members": [
+        "P-14"
+      ],
+      "prevention": [
+        "PRE-07"
+      ],
+      "owner": "AI Agent",
+      "events": [
+        {
+          "problem": "P-14",
+          "date": "2026-10-15",
+          "severity": "P0",
+          "detail": "the route answered 200 with the branch payload to a request that / rejects with 401"
+        }
+      ]
+    },
+    {
+      "id": "FAM-P-05",
+      "title": "构建与分发操作未隔离风险边界",
+      "rootCause": "a build or distribution step was performed without accounting for what still depends on what it removes",
+      "members": [
+        "P-16",
+        "P-23"
+      ],
+      "prevention": [
+        "PRE-08",
+        "PRE-13",
+        "PRE-14"
+      ],
+      "owner": "AI Agent",
+      "events": [
+        {
+          "problem": "P-16",
+          "date": "2026-10-15",
+          "severity": "P0",
+          "detail": "packing into the source directory emptied test/ and tools/"
+        },
+        {
+          "problem": "P-23",
+          "date": "2026-10-16",
+          "severity": "P1",
+          "detail": "the previous tarball was deleted immediately after packing the new one; a subsequent EPERM left the profile depending on a file that no longer existed, and install_bundle could not repair it"
+        }
+      ],
+      "preventionWins": [
+        {
+          "date": "2026-10-16",
+          "note": "check-profile.mjs caught a half-broken profile immediately after remove_bundle failed with EPERM, naming the missing bundle entry and the deleted tarball before a restart could drop the plugin",
+          "measures": [
+            "PRE-08",
+            "PRE-13",
+            "PRE-14"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FAM-P-06",
+      "title": "文档与实现漂移",
+      "rootCause": "a description promised a capability the implementation never had",
+      "members": [
+        "P-03",
+        "P-18",
+        "P-19",
+        "P-21"
+      ],
+      "prevention": [
+        "PRE-09",
+        "PRE-10"
+      ],
+      "owner": "AI Agent",
+      "events": [
+        {
+          "problem": "P-03",
+          "date": "2026-10-15",
+          "severity": "P2",
+          "detail": "repo branches ignored its own branch parameter"
+        },
+        {
+          "problem": "P-18",
+          "date": "2026-10-15",
+          "severity": "P1",
+          "detail": "three wrong conclusions drawn from a single source; 'not found' treated as 'does not exist'"
+        },
+        {
+          "problem": "P-19",
+          "date": "2026-10-16",
+          "severity": "P2",
+          "detail": "github_search declared a `kind` enum that no action read; it looked like the tool's primary selector and did nothing"
+        },
+        {
+          "problem": "P-21",
+          "date": "2026-10-16",
+          "severity": "P3",
+          "detail": "the probe's command label was a hand-written list of five layers and kept listing five after a sixth was added"
+        }
+      ],
+      "preventionWins": [
+        {
+          "date": "2026-10-16",
+          "note": "the offline suite failed on three route-count assertions the moment the branch-switch routes were added, and one of them exposed a REAL source bug: the diagnostics route still reported routes: [BRANCH_ROUTE, DIAGNOSTICS_ROUTE] after the set grew to four. The guard caught the implementation drifting from what it published, in CI, before the release.",
+          "measures": [
+            "PRE-09",
+            "PRE-10"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FAM-P-07",
+      "title": "位置假设被结构变化打破",
+      "rootCause": "a reader addressed a collection by position, so appending an element silently changed what it read",
+      "members": [
+        "P-20"
+      ],
+      "prevention": [
+        "PRE-11"
+      ],
+      "owner": "AI Agent",
+      "events": [
+        {
+          "problem": "P-20",
+          "date": "2026-10-16",
+          "severity": "P2",
+          "detail": "the probe reported its `repo` field from layers.at(-1); after a sixth layer was appended it reported the git route instead"
+        }
+      ]
+    },
+    {
+      "id": "FAM-P-08",
+      "title": "把已识别的不确定性当作已排除",
+      "rootCause": "a limitation was named in the output and then not acted on, so a conclusion rested on evidence already known to be insufficient",
+      "members": [
+        "P-22"
+      ],
+      "prevention": [
+        "PRE-12"
+      ],
+      "owner": "AI Agent",
+      "events": [
+        {
+          "problem": "P-22",
+          "date": "2026-10-16",
+          "severity": "P1",
+          "detail": "three reference plugins were analysed from their READMEs with a note that the code was unread, and those descriptions were then used to decide what to build; reading the code refuted three of the claims"
+        }
+      ]
+    }
+  ]
+}

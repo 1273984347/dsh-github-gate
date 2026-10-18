@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "GitHub 工具箱",
+    "description": "基于 gh CLI 的类型化 GitHub 工具：仓库、Pull Request、Issue、Release、Actions 与搜索，附带分层凭据与带护栏的 REST 直通接口。"
+  }
+}

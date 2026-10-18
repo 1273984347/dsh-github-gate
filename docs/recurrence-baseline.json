@@ -1,0 +1,15 @@
+{
+  "acceptedAt": "2026-10-16",
+  "version": "1.3.1",
+  "note": "Event counts at the moment this state was accepted. `npm run recurrence:check` fails when any count grows.",
+  "events": {
+    "FAM-P-01": 4,
+    "FAM-P-02": 6,
+    "FAM-P-03": 4,
+    "FAM-P-04": 1,
+    "FAM-P-05": 2,
+    "FAM-P-06": 4,
+    "FAM-P-07": 1,
+    "FAM-P-08": 1
+  }
+}

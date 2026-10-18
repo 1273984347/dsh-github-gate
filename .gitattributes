@@ -1,0 +1,13 @@
+# Normalise line endings in the repository, not on check-out.
+#
+# This project ships JavaScript that a POSIX and a Windows host both run, and its
+# own `tools/check-encoding.mjs` fails on a mixed-EOL tree. Without this file,
+# `core.autocrlf=true` (the Windows default) rewrites every committed file to CRLF
+# on checkout, so the same commit produces a different working tree per platform.
+* text=auto eol=lf
+
+# Binary or already-normalised on purpose.
+*.tgz binary
+*.png binary
+*.ico binary
+*.svg text eol=lf

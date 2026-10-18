@@ -1,0 +1,32 @@
+# GitHub toolkit entry. Every config key is optional; defaults live in
+# lib/config.js, so a local path install works without any build step.
+#
+# A Config schema IS declared — index.js exports one built in lib/config-schema.js — so
+# the Settings UI can render these keys with validation and help text. It was absent in an
+# earlier design and this comment still said so; the schema describes the keys, it does not
+# make them required, and lib/config.js still supplies every default at runtime.
+- insert:
+    - id: github-toolkit
+      name: dsh-github-toolkit
+      config:
+        ghPath: ""
+        gitPath: ""
+        defaultRepo: ""
+        credentialRef: GITHUB_TOKEN
+        timeoutMs: 60000
+        watchTimeoutMs: 300000
+        maxOutputBytes: 65536
+        killGraceMs: 2000
+        apiBaseURL: "https://api.github.com"
+        authBaseURL: "https://github.com"
+        # Register your own OAuth App (Device Flow enabled) at
+        # https://github.com/settings/applications/new and paste its client id
+        # here to enable github_auth action "login". Left empty on purpose: a
+        # client id identifies the app registration authorizations are granted
+        # to, so shipping one would route users through a stranger's App.
+        deviceFlowClientId: ""
+        deviceFlowScope: "repo"
+        allowDestructive: true
+        allowRawApi: true
+        blockShellGit: false
+        env: {}

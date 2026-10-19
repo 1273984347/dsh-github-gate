@@ -515,6 +515,12 @@ project and why — including what was deliberately dropped, the two judgments t
 measurement overturned, and the constraints of the official DSL that only appeared
 when compiling against the real libraries.
 
+[docs/roadmap.md](./docs/roadmap.md) lists what is planned and — more usefully —
+what is **not**, with the reason for each refusal.
+
+[PRIVACY.md](./PRIVACY.md) lists every destination this plugin can reach, what is
+stored, and how to remove it. There is no analytics and no account of its own.
+
 MIT licensed — see [LICENSE](./LICENSE). Changes are listed in
 [CHANGELOG.md](./CHANGELOG.md).
 

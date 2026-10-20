@@ -1,0 +1,17 @@
+{
+  "$comment": [
+    "Scripts that CANNOT run in CI, each with the reason. Read by tools/check-script-coverage.mjs.",
+    "This file is not a place to hide a script: every entry needs a reason of 20+ characters, and",
+    "an entry becomes a FAILURE the moment the script is referenced again or deleted. The three",
+    "reasons below are the only three shapes that exist here: needs a local DSH installation,",
+    "inspects a local profile, or is a one-off authored during an audit."
+  ],
+  "scripts": {
+    "verify-params.mjs": "Needs a local DSH installation: it compiles the tool definitions through the real @deepseek-ai/dsh-tools from the vendored asar, which a CI runner does not have. The static parameter-shaped checks are covered by verify-manifest.mjs in CI.",
+    "verify-bundle.mjs": "Needs a local DSH installation: it imports index.js and the tool registry, which resolve @deepseek-ai/* packages reconstructed from the local asar. Its static half is verify-manifest.mjs, which DOES run in CI.",
+    "check-profile.mjs": "Inspects the installed Harness profile on this machine (its package.json and node_modules); a CI runner has no profile to inspect, so the check would report UNVERIFIED on every run.",
+    "check-report.mjs": "Reads the recurrence report produced by earlier local verification runs; there is no such report on a fresh CI checkout, so it can only be run after those runs exist.",
+    "asar-list.mjs": "One-off reconnaissance used during the audit to list entries inside a DSH app.asar; kept so the measurement can be reproduced, not part of any delivery gate.",
+    "repo-recon.mjs": "One-off reconnaissance used during the audit to dump a reference repository's structure; kept so the comparison can be reproduced, not part of any delivery gate."
+  }
+}

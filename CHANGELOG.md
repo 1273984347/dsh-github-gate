@@ -1,5 +1,108 @@
 # Changelog
 
+## 2.1.0 — 让门禁能被打红，也让它知道自己在跑
+
+这一版不改工具行为。它修的是**验证本身的漏洞**——起因是一次对照研究：读了一个成熟项目
+（`D:\xiyouji`，837 commits、45 槽门禁）的工程实践，挑出三条能搬的，做了。
+
+### 起因：CI 是绿的，但打包门禁不在 CI 里
+
+`tools/verify-bundle.mjs` 最近三天抓了 **三次**真实的打包遗漏：
+
+| 漏掉的文件 | 后果 |
+|---|---|
+| `install.ps1` / `install.sh` | 用户拿到的一行安装脚本不在包里 |
+| `PRIVACY.md` | 隐私说明不在包里 |
+| `docs/roadmap.md` | 路线图不在包里 |
+
+而这三次都是**我在本地手动跑出来**的。CI 里根本没有这个脚本——因为它 `import index.js`，
+需要本机 DSH 的 `app.asar`，CI runner 上没有，于是**整个文件**被跳过，连同它那些
+**只需要读文件**的静态检查一起被跳过。CI 的 `Manifest files exist` 只检查 6 个固定文件存在，
+不检查 `files` 字段完整性，结果是**包缺文件、CI 全绿**。
+
+「门禁写了」「门禁在跑」「门禁会红」是三件事。
+
+### 新增
+
+**`tools/lib/report.mjs`** —— 统一三态报告器：`pass` / `fail` / `unverified`。
+`unverified` 既不算通过也不算失败，单独计数并打印在总结里，因为**沉默和成功不能长得一样**。
+报告器是纯数据结构，测试可以直接断言结果，而不必解析控制台输出。
+
+**`tools/verify-manifest.mjs`** —— 把 `verify-bundle.mjs` 里**不依赖 DSH** 的静态检查拆出来：
+每个模块能解析、每个相对 import 落到真实文件、manifest 字段、`files` 与磁盘的**双向**对账、
+patch 行解析、locale、浏览器半边的加载契约（loader id 必须等于包名等）。只 import Node 内置模块，
+**CI 能跑**；静态检查从此只有一份实现，`verify-bundle.mjs` 引用它。
+
+**`tools/check-script-coverage.mjs`** —— 防「门禁写了但没人跑」这一**类**缺陷：
+
+| 规则 | 为什么 |
+|---|---|
+| 每个 `tools/*.mjs` 必须被 scripts / CI / test / 另一个工具引用 | 新脚本不能默默变孤儿 |
+| `verify-*` / `check-*` 必须在 CI 跑，**或**在基线写明理由 | 需要本机 DSH 的那些 |
+| 基线项一旦不再需要即为失败 | 豁免不许腐烂 |
+| 基线理由必须 ≥20 字符 | 豁免不是藏东西的地方 |
+
+首次运行就抓到真东西：4 个完全没引用的脚本、5 个不在 CI 的门禁。基线
+[`docs/script-baseline.json`](./docs/script-baseline.json) 现为 6 条，每条写明为什么不能进 CI。
+
+**`docs/stats.json` + `tools/status.mjs` + `tools/check-docs.mjs`** —— 文档里的数字不再手写。
+`status.mjs --write` **实测**每个值（跑测试、跑参数探针、读注册表），连同出处写进 `stats.json`；
+README 写 `61<!--stats:action_count-->`，`check-docs.mjs` 对账，不一致即失败。
+
+第一次运行立刻抓到 README 里**两个错数字**：
+
+| 声明 | 实际 |
+|---|---|
+| 9 tools / **58** actions | **61** |
+| **23** 个破坏性动作 | **29**（另有 4 个 `github_api` 写方法按 method 判定） |
+
+它们何时错的已不可考——这正是手写数字的性质。
+
+**`test/wiring.test.mjs`（9 条）** —— 断言 CI 的 **`run:` 块**里真的调用了每个门禁。
+锚点必须是 `run:` 而不是 step 名：一个叫「Static delivery gate」但内容是 `echo skipped`
+的步骤会骗过任何按名字的断言。顺带断言 `release` 链跑静态门禁——它原本不跑，被测试抓到。
+
+**`test/gates.test.mjs`（23 条）** —— 每个门禁一个**坏输入**：真的建一棵坏掉的临时树，断言
+报告里**对应的那一条**是 `fail`。只断言「退出码非 0」会在别的检查失败时假通过。
+
+### 改
+
+- `.github/workflows/ci.yml`：新增 `verify-manifest`、`check-script-coverage`、`check-docs`
+  三步；注释写明 offline 套件**故意**不在 CI 跑。
+- `package.json`：`verify:static` 串起四个静态门禁；`release` 改为**先**跑静态门禁；
+  `test` 与 `verify:offline` 同步纳入两个新套件（两边清单必须一致，否则其中一个会静默少跑）。
+- `README.md` / `README.zh.md`：新增「By the numbers」表，数字均带 stats 声明；修正上述两个错值。
+
+### 又一次「把散文当代码扫」
+
+同一形态在这次工作里出现**两次**，都是新门禁自己的 bug：
+
+1. `ci.yml` 的注释解释了「`verify-bundle.mjs` 不能在 CI 跑」，扫描把这段**散文**当成
+   「它已在 CI 运行」，于把一个**正确的**豁免判成过期。
+2. README 说明段落里写了 `N<!--stats:key-->` 这个语法示例，`check-docs` 把它当成真实声明，
+   报 `unknown key "key"`。
+
+修法相同：扫描前剥注释，以及跳过**代码跨度内**的标记。这是本项目第五、第六次记录该形态；
+现在它是代码，不再是一条需要人记住的注意事项。
+
+### 验证
+
+| 套件 | 结果 |
+|---|---|
+| 离线测试 | **207/207**（原 176，新增 32 条） |
+| 静态门禁 | 4/4（manifest / coverage / docs / encoding） |
+| 完整门禁 | 通过（含 DSH 运行时的动态检查） |
+| 参数 / 引导 / 快照 / argv | 211/211 · 114/114 · 180/180 · 84/84 |
+
+### 没做，以及为什么
+
+- **不搬它的 45 槽散文正则门禁**（`verify_delivery.py` 57 KB）：它防内容文档漂移，
+  我们防代码与打包漂移，收益/成本不对等；维护它本身还产生了一连串重构批次。
+- **不把 `verify-params.mjs` 塞进 CI**：它需要本机 DSH，硬塞只会得到一个永远
+  `UNVERIFIED` 的步骤。它留在基线里，并注明静态那半已由 `verify-manifest` 覆盖。
+
+---
+
 ## 2.0.0 — 改名 + 产品面补齐
 
 **改名为 `dsh-github-gate`。** 原名叫 `dsh-github-toolkit`，而市场里已有一个同名、同 topics、

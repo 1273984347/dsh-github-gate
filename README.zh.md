@@ -2,7 +2,7 @@
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 GitHub 工具：写操作不会意外发生。**
 
-九个类型化 `github_*` 工具，全部基于 GitHub CLI。**所有改动远端状态的动作（23 个）都必须先有
+9<!--stats:tool_count--> 个类型化 `github_*` 工具，全部基于 GitHub CLI，共 61<!--stats:action_count--> 个动作。**其中 29<!--stats:destructive_count--> 个改动远端状态的动作必须先有
 `confirm: true`，再经过一道人工审批门。** 模型设的那个标志是它的意图，不是用户的同意。
 
 ```text
@@ -20,7 +20,7 @@ github_pr { action: "merge", number: 42, confirm: true }
 - **分支胶囊**在会话头部：当前分支、它的 PR，以及一个在无法判定调用者时**拒绝服务**的切换菜单。
 - **摘要校验的自更新。** `github_update` 暂存一个 release，其 sha256 会与 GitHub 公布的值核对。
 
-Host 侧工具，加一个小浏览器半身。零运行时依赖。无构建步骤。
+Host 侧工具，加一个小浏览器半身。0<!--stats:runtime_dependencies--> 运行时依赖。无构建步骤。
 
 > **要求**：DeepSeek Harness `>=0.2.0-0 <0.3.0`，以及 `PATH` 上的
 > [GitHub CLI](https://cli.github.com/)（`gh`）。Linux / macOS / Windows 均可。

@@ -1,0 +1,73 @@
+{
+  "$comment": [
+    "Single source for the numbers the README states. Written only by",
+    "tools/status.mjs --write; verified by tools/check-docs.mjs, which fails when a",
+    "`N<!--stats:key-->` marker disagrees with a value here. Do not edit by hand: a",
+    "hand-edited value is indistinguishable from a measured one."
+  ],
+  "keys": {
+    "tool_count": {
+      "value": 9,
+      "domain": "surface",
+      "source": "tools registered by registerDomainTools",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    },
+    "action_count": {
+      "value": 61,
+      "domain": "surface",
+      "source": "sum of every domain's action table",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    },
+    "destructive_count": {
+      "value": 29,
+      "domain": "surface",
+      "source": "actions declaring destructive: true",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    },
+    "runtime_dependencies": {
+      "value": 0,
+      "domain": "packaging",
+      "source": "manifest.dependencies — must stay 0",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    },
+    "test_count": {
+      "value": 207,
+      "domain": "verification",
+      "source": "test() declarations across test/*.test.mjs",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    },
+    "param_count": {
+      "value": 211,
+      "domain": "verification",
+      "source": "assertions in tools/verify-params.mjs",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    },
+    "guidance_chars": {
+      "value": 2193,
+      "domain": "prompt",
+      "source": "injected prompt section size, measured by probe-guidance",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    },
+    "argv_shapes": {
+      "value": 84,
+      "domain": "verification",
+      "source": "argv shapes parsed by the real gh (tools/probe-argv.mjs)",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    },
+    "snapshot_count": {
+      "value": 180,
+      "domain": "verification",
+      "source": "cases in tools/snapshot-behaviour.mjs output",
+      "measured_on": "2026-10-20",
+      "measured_by": "tools/status.mjs --write"
+    }
+  }
+}

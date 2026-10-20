@@ -1,6 +1,6 @@
 {
   "name": "dsh-github-gate",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Guarded GitHub tools for DeepSeek Harness: 9 typed github_* tools (58 actions) over the GitHub CLI, where every state-changing action goes through a confirm gate plus a human approval seam, with a digest-verified self-update. | 面向 DeepSeek Harness 的 GitHub 工具：9 个 github_* 工具，所有改状态动作都必须经过 confirm 与人工审批门，并支持摘要校验的自更新。",
   "type": "module",
   "main": "./index.js",
@@ -45,7 +45,9 @@
     "docs/WORKFLOW.md",
     "docs/roadmap.md",
     "docs/recurrence.json",
-    "docs/recurrence-baseline.json"
+    "docs/recurrence-baseline.json",
+    "docs/stats.json",
+    "docs/script-baseline.json"
   ],
   "dsh": {
     "manifestVersion": 1,
@@ -74,10 +76,10 @@
   },
   "scripts": {
     "vendor": "node tools/ensure-vendor.mjs",
-    "test": "node tools/ensure-vendor.mjs && node --import ./test/register-hook.mjs --test test/offline.test.mjs test/r3.test.mjs test/update.test.mjs test/settings.test.mjs test/client.test.mjs test/plugin.test.mjs",
+    "test": "node tools/ensure-vendor.mjs && node --import ./test/register-hook.mjs --test test/offline.test.mjs test/r3.test.mjs test/update.test.mjs test/settings.test.mjs test/client.test.mjs test/plugin.test.mjs test/wiring.test.mjs test/gates.test.mjs",
     "test:live": "node tools/ensure-vendor.mjs && node --import ./test/register-hook.mjs test/live-readonly.mjs",
     "probe": "node tools/ensure-vendor.mjs && node tools/probe-schemastery.mjs && node --import ./test/register-hook.mjs tools/probe-define-tool.mjs",
-    "verify:offline": "node tools/ensure-vendor.mjs && node tools/probe-schemastery.mjs && node --import ./test/register-hook.mjs tools/probe-define-tool.mjs && node --import ./test/register-hook.mjs tools/verify-bundle.mjs && node --import ./test/register-hook.mjs tools/verify-params.mjs && node --import ./test/register-hook.mjs tools/probe-guidance.mjs && node tools/knowledge-index.mjs && node tools/recurrence-report.mjs && node --import ./test/register-hook.mjs --test test/offline.test.mjs test/r3.test.mjs test/update.test.mjs test/settings.test.mjs test/client.test.mjs test/plugin.test.mjs",
+    "verify:offline": "node tools/ensure-vendor.mjs && node tools/probe-schemastery.mjs && node --import ./test/register-hook.mjs tools/probe-define-tool.mjs && node --import ./test/register-hook.mjs tools/verify-bundle.mjs && node --import ./test/register-hook.mjs tools/verify-params.mjs && node --import ./test/register-hook.mjs tools/probe-guidance.mjs && node tools/knowledge-index.mjs && node tools/recurrence-report.mjs && node --import ./test/register-hook.mjs --test test/offline.test.mjs test/r3.test.mjs test/update.test.mjs test/settings.test.mjs test/client.test.mjs test/plugin.test.mjs test/wiring.test.mjs test/gates.test.mjs",
     "verify": "npm run verify:offline && node --import ./test/register-hook.mjs test/live-readonly.mjs && node --import ./test/register-hook.mjs tools/probe-connectivity.mjs",
     "probe:connectivity": "node --import ./test/register-hook.mjs tools/probe-connectivity.mjs",
     "probe:guidance": "node --import ./test/register-hook.mjs tools/probe-guidance.mjs",
@@ -95,13 +97,19 @@
     "recurrence": "node tools/recurrence-report.mjs",
     "prevention": "node tools/record-prevention.mjs",
     "probe:branch": "node --import ./test/register-hook.mjs tools/probe-branch-switch.mjs",
-    "release": "npm run verify && npm run encoding && npm run report:check -- --strict && npm run profile:check && npm run probe:argv && npm run probe:arity && node tools/compare-installed.mjs",
+    "release": "npm run verify:static && npm run verify && npm run report:check -- --strict && npm run profile:check && npm run probe:argv && npm run probe:arity && node tools/compare-installed.mjs",
     "compare:installed": "node tools/compare-installed.mjs",
     "audit": "node tools/audit-brief.mjs",
     "operations": "node tools/classify-operations.mjs",
     "usage": "node tools/tool-usage.mjs",
     "recurrence:accept": "node tools/recurrence-report.mjs --accept",
-    "probe:ui": "node tools/probe-ui.mjs --cdp http://127.0.0.1:9222"
+    "probe:ui": "node tools/probe-ui.mjs --cdp http://127.0.0.1:9222",
+    "manifest": "node tools/verify-manifest.mjs",
+    "coverage": "node tools/check-script-coverage.mjs",
+    "verify:static": "node tools/verify-manifest.mjs && node tools/check-script-coverage.mjs && node tools/check-docs.mjs && node tools/check-encoding.mjs",
+    "status": "node --import ./test/register-hook.mjs tools/status.mjs",
+    "stats:update": "node --import ./test/register-hook.mjs tools/status.mjs --write",
+    "check:docs": "node tools/check-docs.mjs"
   },
   "keywords": [
     "deepseek-harness",

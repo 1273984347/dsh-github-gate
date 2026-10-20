@@ -38,6 +38,26 @@ jobs:
           done < <(find . -name '*.js' -o -name '*.mjs' | grep -v -e node_modules -e '\.vendor')
           exit $fail
 
+      # The static half of the delivery gate. It lives in its own script precisely so
+      # this job can run it: `verify-bundle.mjs` imports index.js and therefore needs a
+      # local DSH installation, so it used to be skipped here ENTIRELY — including the
+      # packaging checks that caught three real omissions (install.ps1/install.sh,
+      # PRIVACY.md, docs/roadmap.md were each in the tree and absent from `files`, so
+      # the tarball would have shipped without them while this job stayed green).
+      - name: Static delivery gate (manifest, packaging, imports, client half)
+        run: node tools/verify-manifest.mjs
+
+      # A gate nothing invokes is indistinguishable from no gate. This one fails when a
+      # tools/ script is referenced by nothing, when a verify-*/check-* script never
+      # runs in CI without a written exemption, or when an exemption went stale.
+      - name: Every tool is reachable, every gate is wired
+        run: node tools/check-script-coverage.mjs
+
+      # Every numeric claim in the README against docs/stats.json. The numbers are
+      # measured by tools/status.mjs --write, so a stale claim fails here instead of
+      # quietly misleading a reader.
+      - name: Documented numbers match measured facts
+        run: node tools/check-docs.mjs
       - name: Encoding is clean (no BOM, no NUL, valid UTF-8, consistent EOL)
         run: node tools/check-encoding.mjs
 

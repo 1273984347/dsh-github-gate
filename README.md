@@ -9,8 +9,10 @@
 
 **GitHub tools for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) where a write cannot happen by accident.**
 
-Nine typed `github_*` tools over the GitHub CLI. Every action that changes remote
-state — 23 of them — needs `confirm: true` **and** passes a human approval seam.
+9<!--stats:tool_count--> typed `github_*` tools over the GitHub CLI, 61<!--stats:action_count-->
+actions in all. 29<!--stats:destructive_count--> of them are marked destructive and need
+`confirm: true` **and** a human approval seam; the four write methods `github_api` accepts
+are classified at run time.
 The model's flag is intent; it is not consent.
 
 ```text
@@ -31,7 +33,7 @@ github_pr { action: "merge", number: 42, confirm: true }
 - **Digest-verified self-update.** `github_update` stages a release whose sha256 is
   checked against the digest GitHub publishes.
 
-Host-side tools plus one small browser half. Zero runtime dependencies. No build step.
+Host-side tools plus one small browser half. 0<!--stats:runtime_dependencies--> runtime dependencies. No build step.
 
 > **Requires** DeepSeek Harness `>=0.2.0-0 <0.3.0` and the
 > [GitHub CLI](https://cli.github.com/) (`gh`) on `PATH`. Linux, macOS, and Windows.
@@ -47,9 +49,9 @@ easier to write and harder to trust. The trade this project makes is explicit:
 |---|---|---|
 | Write safety | `confirm: true`, set by the model | `confirm: true` **+** an approval seam the model cannot set |
 | Raw REST | unrestricted escape hatch | path must be relative, no `..`, write methods gated at run time |
-| Correctness evidence | tests of its own API | 176 tests, 180 behaviour snapshots, and **84 argv shapes parsed by a real `gh`** |
+| Correctness evidence | tests of its own API | 207<!--stats:test_count--> tests, 180<!--stats:snapshot_count--> behaviour snapshots, and **84<!--stats:argv_shapes--> argv shapes parsed by a real `gh`** |
 | Failure messages | HTTP code passed through | 401 / 403 quota / 403 SSO / 404 / 422 each name the fix |
-| Scope | as many tools as possible | 9 tools / 58 actions, one to a `gh` subcommand family |
+| Scope | as many tools as possible | 9<!--stats:tool_count--> tools / 61<!--stats:action_count--> actions, one to a `gh` subcommand family |
 | Self-update | — | staged with a verified sha256, install left to the platform |
 
 If you want the largest possible tool surface with no gates, this is not the right
@@ -378,7 +380,7 @@ there instead of degrading silently on first use. The full catalog:
   rejects at layer 2, so the ask never becomes a silent allow.
 
   **Which actions count.** Every action that changes remote state is classified
-  `destructive` — 23 of them across the eight tools, including `github_api` write
+  `destructive` — 29<!--stats:destructive_count--> of them across the nine tools, plus `github_api` write
   methods, which are classified at run time by their `method` because one `request`
   action reads as GET and writes as POST. An offline test asserts that no action is
   left unclassified: a new action that is neither read-only, destructive, nor in the
@@ -447,6 +449,30 @@ Designs that were evaluated and deliberately not implemented — structured revi
 evidence routing, idempotent PR creation, diff budgets, flow state — are recorded
 in [docs/DESIGN.md](./docs/DESIGN.md) §8 so the ideas are not lost with the source
 repositories.
+
+## By the numbers
+
+Every value below is measured, not typed: `tools/status.mjs --write` produces
+[docs/stats.json](./docs/stats.json) by running the thing that owns each number, and
+`tools/check-docs.mjs` fails when any `N<!--stats:key-->` claim in this file disagrees
+with it. A number in prose can therefore go stale only by failing CI.
+
+| Fact | Value | Measured from |
+|---|---|---|
+| Tools | 9<!--stats:tool_count--> | tools registered by `registerDomainTools` |
+| Actions | 61<!--stats:action_count--> | every domain's action table |
+| Destructive actions | 29<!--stats:destructive_count--> | actions declaring `destructive: true` |
+| Runtime dependencies | 0<!--stats:runtime_dependencies--> | `manifest.dependencies` |
+| Tests | 207<!--stats:test_count--> | `test()` declarations across the suite |
+| Parameter assertions | 211<!--stats:param_count--> | `tools/verify-params.mjs` |
+| argv shapes parsed by a real `gh` | 84<!--stats:argv_shapes--> | `tools/probe-argv.mjs` |
+| Behaviour snapshots | 180<!--stats:snapshot_count--> | `tools/snapshot-behaviour.mjs` |
+| Injected prompt section | 2193<!--stats:guidance_chars--> chars | `tools/probe-guidance.mjs` |
+
+**These are not a quality score.** They prove that a thing was measured and still
+agrees with its documentation — not that the tool surface is well chosen or the
+verification asked the right questions. The counts are here so a reader can check them,
+not so the project can point at them.
 
 ## Development
 
